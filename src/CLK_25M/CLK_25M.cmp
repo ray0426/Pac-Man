@@ -1,0 +1,8 @@
+	component CLK_25M is
+		port (
+			clk_clk       : in  std_logic := 'X'; -- clk
+			clk_25m_clk   : out std_logic;        -- clk
+			reset_reset_n : in  std_logic := 'X'  -- reset_n
+		);
+	end component CLK_25M;
+

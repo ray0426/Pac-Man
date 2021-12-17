@@ -1,0 +1,39 @@
+Info: Starting: Create block symbol file (.bsf)
+Info: qsys-generate D:\team10_final\vga_test\src\CLK_25M.qsys --block-symbol-file --output-directory=D:\team10_final\vga_test\src\CLK_25M --family="Cyclone IV E" --part=EP4CE115F29C7
+Progress: Loading src/CLK_25M.qsys
+Progress: Reading input file
+Progress: Adding altpll_0 [altpll 18.1]
+Progress: Parameterizing module altpll_0
+Progress: Adding clk_0 [clock_source 18.1]
+Progress: Parameterizing module clk_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Warning: CLK_25M.altpll_0: altpll_0.areset_conduit must be exported, or connected to a matching conduit.
+Warning: CLK_25M.altpll_0: altpll_0.locked_conduit must be exported, or connected to a matching conduit.
+Warning: CLK_25M.altpll_0: altpll_0.pll_slave must be connected to an Avalon-MM master
+Info: qsys-generate succeeded.
+Info: Finished: Create block symbol file (.bsf)
+Info: 
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate D:\team10_final\vga_test\src\CLK_25M.qsys --synthesis=VERILOG --output-directory=D:\team10_final\vga_test\src\CLK_25M\synthesis --family="Cyclone IV E" --part=EP4CE115F29C7
+Progress: Loading src/CLK_25M.qsys
+Progress: Reading input file
+Progress: Adding altpll_0 [altpll 18.1]
+Progress: Parameterizing module altpll_0
+Progress: Adding clk_0 [clock_source 18.1]
+Progress: Parameterizing module clk_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Warning: CLK_25M.altpll_0: altpll_0.areset_conduit must be exported, or connected to a matching conduit.
+Warning: CLK_25M.altpll_0: altpll_0.locked_conduit must be exported, or connected to a matching conduit.
+Warning: CLK_25M.altpll_0: altpll_0.pll_slave must be connected to an Avalon-MM master
+Info: CLK_25M: Generating CLK_25M "CLK_25M" for QUARTUS_SYNTH
+Info: altpll_0: "CLK_25M" instantiated altpll "altpll_0"
+Info: rst_controller: "CLK_25M" instantiated altera_reset_controller "rst_controller"
+Info: CLK_25M: Done "CLK_25M" with 3 modules, 5 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis
