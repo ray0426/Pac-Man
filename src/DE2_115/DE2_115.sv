@@ -37,12 +37,12 @@ module DE2_115 (
 	input SD_WP_N,
 
 	// VGA
-	output [7:0] VGA_B,
 	output VGA_BLANK_N,
 	output VGA_CLK,
-	output [7:0] VGA_G,
-	output VGA_HS,
 	output [7:0] VGA_R,
+	output [7:0] VGA_G,
+	output [7:0] VGA_B,
+	output VGA_HS,
 	output VGA_SYNC_N,
 	output VGA_VS,
 
@@ -183,7 +183,7 @@ VGA vga(
 	// .test(LEDG[2])
 );
 
-wire [7:0]w_map[0:35][0:27];
+wire [7:0] w_map[0:35][0:27];
 wire [9:0] w_pacman_x;
 wire [9:0] w_pacman_y;
 wire [9:0] w_ghost1_x;
@@ -214,6 +214,54 @@ Vga_Mem_addr_generator vga_mem_addr_generator(
 	.o_tile_offset(w_tile_offset),
 	.o_char_offset(w_char_offset)
 );
+
+Mem_controller mam_controller(
+    .i_clk(CLOCK_50),
+    .i_rst_n(~rst_main),
+
+    .i_mem_select(w_mem_select),
+	.i_address_map(w_address_map),
+	.i_address_char(w_address_char),
+	.i_tile_offset(w_tile_offset),
+	.i_char_offset(w_char_offset),
+
+	.o_VGA_R(VGA_R),
+	.o_VGA_G(VGA_G),
+	.o_VGA_B(VGA_B)
+);
+
+Board_controller board_controller(
+    .o_board(w_map)
+);
+
+wire w_left, w_right, w_up, w_down;
+
+Test_show_pacman test_show_pacman(
+    .i_clk(CLOCK_50),
+    .i_rst_n(~rst_main),
+    .i_up(w_up & SW[0]),
+    .i_down(w_down & SW[0]),
+    .i_left(w_left & SW[0]),
+    .i_right(w_right & SW[0]),
+    .w_pacman_x(w_pacman_x),
+    .w_pacman_y(w_pacman_y)
+);
+
+Test_show_pacman test_show_ghost(
+    .i_clk(CLOCK_50),
+    .i_rst_n(~rst_main),
+    .i_up(w_up & ~SW[0]),
+    .i_down(w_down & ~SW[0]),
+    .i_left(w_left & ~SW[0]),
+    .i_right(w_right & ~SW[0]),
+    .w_pacman_x(w_ghost1_x),
+    .w_pacman_y(w_ghost1_y)
+);
+
+Debounce key_left(  .i_in(KEY[3]),	.i_clk(CLOCK_50), .o_pos(w_left));
+Debounce key_up(    .i_in(KEY[2]),	.i_clk(CLOCK_50), .o_pos(w_up));
+Debounce key_down(  .i_in(KEY[1]),	.i_clk(CLOCK_50), .o_pos(w_down));
+Debounce key_right( .i_in(KEY[0]),	.i_clk(CLOCK_50), .o_pos(w_right));
 
 // for future use or debug
 assign HEX0 = 7'b1111001;

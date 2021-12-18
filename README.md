@@ -3,6 +3,37 @@
 
 ---
 
+## 12-18 change log
+
+### DE2_115.sv
+
+connect i_map, w_pacman_x, w_pacman_y, w_ghost1_x, w_ghost1_y, w_mem_select, w_address_map, w_address_char, w_tile_offset, w_char_offset
+
+### Debounce.sv
+
+add to project(to debounce key)
+
+### Map_controller.sv
+
+add to output simple map
+
+TODO:
+1. load board from ram
+
+### Mem_controller.sv
+
+add to output rgb to vga interface
+
+TODO:
+1. load tile from ram
+2. load character from ram
+
+### Test_show_pacman.sv
+
+add to test pacman & ghost position
+
+---
+
 ## 12-17 change log
 
 ### DE2_115.sv
