@@ -83,9 +83,9 @@ always_comb begin
         endcase
     end
     else begin
-        o_VGA_R = 8'b00000000;
-        o_VGA_G = 8'b00000000;
-        o_VGA_B = 8'b00000000;
+        o_VGA_R = 8'b11111111;  // for debug, may be 00000000
+        o_VGA_G = 8'b11111111;
+        o_VGA_B = 8'b11111111;
     end
 end
 

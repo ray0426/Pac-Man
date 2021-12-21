@@ -19,21 +19,21 @@ always_ff @(posedge i_clk or negedge i_rst_n) begin
         r_y <= 0;
     end
     else begin
-        if (i_left & (r_x > 0)) begin
+        if (i_left & (r_y > 0)) begin
+				r_x <= r_x;
+            r_y <= r_y - 1;
+        end
+        else if (i_right & (r_y < 208)) begin
+            r_x <= r_x;
+            r_y <= r_y + 1;
+        end
+        else if (i_up & (r_x > 0)) begin
             r_x <= r_x - 1;
             r_y <= r_y;
         end
-        else if (i_right & (r_x < 479)) begin
+        else if (i_down & (r_x < 272)) begin
             r_x <= r_x + 1;
             r_y <= r_y;
-        end
-        else if (i_up & (r_y > 0)) begin
-            r_x <= r_x;
-            r_y <= r_y - 1;
-        end
-        else if (i_down & (r_y < 639)) begin
-            r_x <= r_x;
-            r_y <= r_y + 1;
         end
         else begin
             r_x <= r_x;

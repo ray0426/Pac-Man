@@ -47,6 +47,8 @@ module VGA(
     assign VGA_VS       =   vsync_r;
     assign VGA_SYNC_N   =   1'b0;
     assign VGA_BLANK_N  =   ~((x_cnt_r < H_BLANK) || (y_cnt_r < V_BLANK));
+	 
+	 assign o_show_en = show_en_r;
     
     // Coordinates
     always_comb begin
