@@ -186,10 +186,18 @@ VGA vga(
 wire [7:0] w_map[0:35][0:27];
 wire [9:0] w_pacman_x;
 wire [9:0] w_pacman_y;
-wire [9:0] w_ghost1_x;
-wire [9:0] w_ghost1_y;
+// wire [9:0] w_ghost1_x;
+// wire [9:0] w_ghost1_y;
+wire [9:0] w_blinky_x;
+wire [9:0] w_blinky_y;
+wire [9:0] w_pinky_x;
+wire [9:0] w_pinky_y;
+wire [9:0] w_inky_x;
+wire [9:0] w_inky_y;
+wire [9:0] w_clyde_x;
+wire [9:0] w_clyde_y;
 wire [1:0] w_mem_select;
-wire [4:0] w_address_map;
+wire [7:0] w_address_map;
 wire [7:0] w_address_char;
 wire [5:0] w_tile_offset;
 wire [5:0] w_char_offset;
@@ -205,8 +213,16 @@ Vga_Mem_addr_generator vga_mem_addr_generator(
 	.i_map(w_map),
 	.i_pacman_x(w_pacman_x),
 	.i_pacman_y(w_pacman_y),
-	.i_ghost1_x(w_ghost1_x),
-	.i_ghost1_y(w_ghost1_y),
+	// .i_ghost1_x(w_ghost1_x),
+	// .i_ghost1_y(w_ghost1_y),
+	.i_blinky_x(w_blinky_x),
+	.i_blinky_y(w_blinky_y),
+	.i_pinky_x(w_pinky_x),
+	.i_pinky_y(w_pinky_y),
+	.i_inky_x(w_inky_x),
+	.i_inky_y(w_inky_y),
+	.i_clyde_x(w_clyde_x),
+	.i_clyde_y(w_clyde_y),
 
 	.o_mem_select(w_mem_select),
 	.o_address_map(w_address_map),
@@ -216,10 +232,10 @@ Vga_Mem_addr_generator vga_mem_addr_generator(
 );
 
 Mem_controller mam_controller(
-    .i_clk(CLOCK_50),
-    .i_rst_n(~rst_main),
+	.i_clk(CLOCK_50),
+	.i_rst_n(~rst_main),
 
-    .i_mem_select(w_mem_select),
+	.i_mem_select(w_mem_select),
 	.i_address_map(w_address_map),
 	.i_address_char(w_address_char),
 	.i_tile_offset(w_tile_offset),
@@ -230,8 +246,29 @@ Mem_controller mam_controller(
 	.o_VGA_B(VGA_B)
 );
 
+wire [3:0] w_game_state;
+wire       w_board_reload;
+wire       w_board_reload_done;
+
+assign LEDG[3:0] = w_game_state;
+
+Game_controller game_controller(
+	.i_clk(CLOCK_50),
+	.i_rst_n(~rst_main),
+	.i_board_reload_done(w_board_reload_done),
+
+	.o_game_state(w_game_state),
+	.o_board_reload(w_board_reload)
+);
+
+
 Board_controller board_controller(
-    .o_board(w_map)
+	.i_clk(CLOCK_50),
+	.i_rst_n(~rst_main),
+
+	.i_reload(w_board_reload),
+	.o_reload_done(w_board_reload_done),
+	.o_board(w_map)
 );
 
 wire w_left, w_right, w_up, w_down;
@@ -247,15 +284,48 @@ Test_show_pacman test_show_pacman(
     .w_pacman_y(w_pacman_y)
 );
 
-Test_show_pacman test_show_ghost(
+Test_show_pacman test_show_blinky(
     .i_clk(CLOCK_50),
     .i_rst_n(~rst_main),
-    .i_up(w_up & ~SW[0]),
-    .i_down(w_down & ~SW[0]),
-    .i_left(w_left & ~SW[0]),
-    .i_right(w_right & ~SW[0]),
-    .w_pacman_x(w_ghost1_x),
-    .w_pacman_y(w_ghost1_y)
+    .i_up(   w_up    & ~SW[0] & (~SW[2] & ~SW[1])),
+    .i_down( w_down  & ~SW[0] & (~SW[2] & ~SW[1])),
+    .i_left( w_left  & ~SW[0] & (~SW[2] & ~SW[1])),
+    .i_right(w_right & ~SW[0] & (~SW[2] & ~SW[1])),
+    .w_pacman_x(w_blinky_x),
+    .w_pacman_y(w_blinky_y)
+);
+
+Test_show_pacman test_show_pinky(
+    .i_clk(CLOCK_50),
+    .i_rst_n(~rst_main),
+    .i_up(   w_up    & ~SW[0] & (~SW[2] &  SW[1])),
+    .i_down( w_down  & ~SW[0] & (~SW[2] &  SW[1])),
+    .i_left( w_left  & ~SW[0] & (~SW[2] &  SW[1])),
+    .i_right(w_right & ~SW[0] & (~SW[2] &  SW[1])),
+    .w_pacman_x(w_pinky_x),
+    .w_pacman_y(w_pinky_y)
+);
+
+Test_show_pacman test_show_inky(
+    .i_clk(CLOCK_50),
+    .i_rst_n(~rst_main),
+    .i_up(   w_up    & ~SW[0] & ( SW[2] & ~SW[1])),
+    .i_down( w_down  & ~SW[0] & ( SW[2] & ~SW[1])),
+    .i_left( w_left  & ~SW[0] & ( SW[2] & ~SW[1])),
+    .i_right(w_right & ~SW[0] & ( SW[2] & ~SW[1])),
+    .w_pacman_x(w_inky_x),
+    .w_pacman_y(w_inky_y)
+);
+
+Test_show_pacman test_show_clyde(
+    .i_clk(CLOCK_50),
+    .i_rst_n(~rst_main),
+    .i_up(   w_up    & ~SW[0] & ( SW[2] &  SW[1])),
+    .i_down( w_down  & ~SW[0] & ( SW[2] &  SW[1])),
+    .i_left( w_left  & ~SW[0] & ( SW[2] &  SW[1])),
+    .i_right(w_right & ~SW[0] & ( SW[2] &  SW[1])),
+    .w_pacman_x(w_clyde_x),
+    .w_pacman_y(w_clyde_y)
 );
 
 Debounce key_left(  .i_in(KEY[3]),	.i_clk(CLOCK_50), .o_pos(w_left));
