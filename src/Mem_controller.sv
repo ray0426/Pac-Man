@@ -29,7 +29,7 @@ assign w_data = (i_mem_select[1] == 0) ? w_data_tile : w_data_char;
 
 Tileset_Ram tileset_ram(
 	.address(w_address_tile),
-	.clock(i_clk),
+	.clock(~i_clk),   // usage of ram
 	.data(empty_data),
 	.wren(never_write),
 	.q(w_data_tile)
@@ -59,13 +59,13 @@ always_comb begin
                 w_data_char = 4'd4;
             end
             5'd2: begin
-                w_data_char = 4'd4;
+                w_data_char = 4'd5;
             end
             5'd3: begin
-                w_data_char = 4'd4;
+                w_data_char = 4'd6;
             end
             5'd4: begin
-                w_data_char = 4'd4;
+                w_data_char = 4'd7;
             end
             default: begin
                 w_data_char = 4'd2;

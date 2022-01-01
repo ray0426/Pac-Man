@@ -34,7 +34,7 @@ assign never_write = 1'b0;
 
 Board_Ram board_ram(
 	.address(w_address),
-	.clock(i_clk),
+	.clock(~i_clk),   // usage of ram
 	.data(empty_data),
 	.wren(never_write),
 	.q(w_data)
@@ -45,7 +45,7 @@ integer i, j;
 always_comb begin
 	for (i = 0; i < 36; i = i + 1) begin
 		for (j = 0; j < 28; j = j + 1) begin
-			board_w[i][j] = ((state_r == S_RELOAD) & ((i * 28 + j) == counter_r)) ? w_data : board_r[i][j];
+			board_w[i][j] = ((state_r == S_RELOAD) & ((i * 28 + j) == counter_r - 1)) ? w_data : board_r[i][j];
 		end
 	end
 end
@@ -73,7 +73,7 @@ always_comb begin
 			end
 		end
 		S_RELOAD: begin
-			if (counter_w == 1007) begin
+			if (counter_w == 1009) begin
 				counter_w = 0;
 				state_w = S_IDLE;
 				reload_done_w = 1;
