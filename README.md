@@ -3,6 +3,43 @@
 
 ---
 
+## 1-2 change log
+
+### DE2_115.sv
+
+add 
+1. w_pacman_eaten, w_dot_clear, w_ghost_reload, w_level
+2. w_items_reload, w_items_map, w_item_eaten, w_item_eaten_type, w_item_eaten_x, w_item_eaten_y, w_items, w_dots_counter, w_dots_eaten_counter, w_energizer_counter
+3. w_blinky_eaten, w_pinky_eaten, w_inky_eaten, w_clyde_eaten, w_blinky_returned, w_pinky_returned, w_inky_returned, w_clyde_returned, w_blinky_state, w_pinky_state, w_inky_state, w_clyde_state
+
+update
+1. Game_controller
+2. Items_controller
+3. Ghost_controller
+4. Collision_controller
+
+TODO:
+1. still have some wires not connected
+
+### Game_controller.sv
+
+add FSM
+
+TODO:
+1. output reload items signal, reload pacman signal
+
+### Ghost_controller.sv
+
+control total ghost state and each ghost state
+
+### Items_controller.sv
+
+control items reset and eaten
+
+TODO:
+1. initial items load from ram
+2. output reload done
+
 ## 12-18 change log
 
 ### DE2_115.sv

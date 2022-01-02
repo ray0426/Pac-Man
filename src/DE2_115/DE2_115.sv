@@ -213,8 +213,6 @@ Vga_Mem_addr_generator vga_mem_addr_generator(
 	.i_map(w_map),
 	.i_pacman_x(w_pacman_x),
 	.i_pacman_y(w_pacman_y),
-	// .i_ghost1_x(w_ghost1_x),
-	// .i_ghost1_y(w_ghost1_y),
 	.i_blinky_x(w_blinky_x),
 	.i_blinky_y(w_blinky_y),
 	.i_pinky_x(w_pinky_x),
@@ -249,18 +247,122 @@ Mem_controller mam_controller(
 wire [3:0] w_game_state;
 wire       w_board_reload;
 wire       w_board_reload_done;
+wire       w_pacman_eaten;
+wire       w_dot_clear;
+wire       w_ghost_reload;        // to be connected
+wire [7:0] w_level;               // to be connected
 
 assign LEDG[3:0] = w_game_state;
+
+assign w_dot_clear = (w_dots_counter == 0);
 
 Game_controller game_controller(
 	.i_clk(CLOCK_50),
 	.i_rst_n(~rst_main),
+	.i_board_reload_done,
+	.i_game_start(KEY[0]),
+	.i_game_pause(SW[16]),
 	.i_board_reload_done(w_board_reload_done),
+	.i_pacman_eaten(w_pacman_eaten),
+	.i_dot_clear(w_dot_clear),
 
 	.o_game_state(w_game_state),
-	.o_board_reload(w_board_reload)
+	.o_ghost_reload(w_ghost_reload),
+	.o_board_reload(w_board_reload),
+	.o_level(w_level)
 );
 
+wire       w_items_reload;          // to be connect, from game ctrl
+wire [1:0] w_items_map[0:35][0:27]; // to be connect, from items loader or "self product"->preferable
+wire       w_item_eaten;            
+wire [1:0] w_item_eaten_type;       
+wire [5:0] w_item_eaten_x;          
+wire [5:0] w_item_eaten_y;          
+wire [1:0] w_items[0:35][0:27];     // to be connect, for vga and collision ctrl
+wire [7:0] w_dots_counter;          // for game ctrl
+wire [7:0] w_dots_eaten_counter;    // to be connect, for ghost ctrl
+wire [3:0] w_energizer_counter;     // to be connect
+
+Items_controller items_controller(
+    .i_clk(CLOCK_50),
+    .i_rst_n(~rst_main),
+    .i_items_reload(w_items_reload),             // i_items_map must be ready when i_items_relaod
+    .i_items_map(w_items_map),
+    .i_item_eaten(w_item_eaten),
+    .i_item_eaten_type(w_item_eaten_type),
+    .i_item_x(w_item_eaten_x),
+    .i_item_y(w_item_eaten_y),
+
+    .o_items(w_items),   // 0: none, 1: dot, 2:energizer
+    .o_dots_counter(w_dots_counter),
+    .o_dots_eaten_counter(w_dots_eaten_counter),
+    .o_energizer_counter(w_energizer_counter)
+);
+
+wire w_blinky_eaten;
+wire w_pinky_eaten;
+wire w_inky_eaten;
+wire w_clyde_eaten;
+wire w_blinky_returned;
+wire w_pinky_returned;
+wire w_inky_returned;
+wire w_clyde_returned;
+wire [3:0] w_blinky_state;
+wire [3:0] w_pinky_state;
+wire [3:0] w_inky_state;
+wire [3:0] w_clyde_state;
+
+Ghost_controller ghost_controller(
+    .i_clk(CLOCK_50),
+    .i_rst_n(~rst_main),
+    .i_game_state(w_game_state),
+    .i_ghost_reload(w_ghost_reload),
+    .i_energizers_eaten(w_item_eaten && (w_item_eaten_type == I_ENERGIZER)),
+    .i_blinky_eaten(w_blinky_eaten),
+    .i_pinky_eaten(w_pinky_eaten),
+    .i_inky_eaten(w_inky_eaten),
+    .i_clyde_eaten(w_clyde_eaten),
+    .i_blinky_returned(w_blinky_returned),
+    .i_pinky_returned(w_pinky_returned),
+    .i_inky_returned(w_inky_returned),
+    .i_clyde_returned(w_clyde_returned),
+
+    .o_blinky_state(w_blinky_state),
+    .o_pinky_state(w_pinky_state),
+    .o_inky_state(w_inky_state),
+    .o_clyde_state(w_clyde_state),
+);
+
+Collision_controller collision_controller(
+    .i_clk(CLOCK_50),
+    .i_rst_n(~rst_main),
+    .i_game_state(w_game_state),
+    .i_items(w_items),
+    .i_pacman_x(w_pacman_x >> 3),
+	.i_pacman_y(w_pacman_y >> 3),
+	.i_blinky_x(w_blinky_x >> 3),
+	.i_blinky_y(w_blinky_y >> 3),
+	.i_pinky_x(w_pinky_x >> 3),
+	.i_pinky_y(w_pinky_y >> 3),
+	.i_inky_x(w_inky_x >> 3),
+	.i_inky_y(w_inky_y >> 3),
+	.i_clyde_x(w_clyde_x >> 3),
+	.i_clyde_y(w_clyde_y >> 3),
+    .i_blinky_state(w_blinky_state),
+    .i_pinky_state(w_pinky_state),
+    .i_inky_state(w_inky_state),
+    .i_clyde_state(w_clyde_state),
+
+    .o_item_eaten(w_item_eaten),
+    .o_item_eaten_type(w_item_eaten_type),
+    .o_item_eaten_x(w_item_eaten_x),
+    .o_item_eaten_y(w_item_eaten_y),
+    .o_pacman_eaten(w_pacman_eaten),
+    .o_blinky_eaten(w_blinky_eaten),
+    .o_pinky_eaten(w_pinky_eaten),
+    .o_inky_eaten(w_inky_eaten),
+    .o_clyde_eaten(w_clyde_eaten)
+);
 
 Board_controller board_controller(
 	.i_clk(CLOCK_50),
