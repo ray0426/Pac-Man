@@ -1,3 +1,5 @@
+`include "params.vh"
+
 module Mem_controller(
     input        i_clk,
     input        i_rst_n,
@@ -5,6 +7,7 @@ module Mem_controller(
     input [1:0]  i_mem_select,
 	input [7:0]  i_address_map,
 	input [7:0]  i_address_char,
+    input [1:0]  i_address_item,
 	input [5:0]  i_tile_offset,
 	input [5:0]  i_char_offset,
 
@@ -47,6 +50,11 @@ RGB_decoder rgb_decoder(
 	.o_VGA_G(w_VGA_G),
 	.o_VGA_B(w_VGA_B)
 );
+
+wire [63:0] w_energizer;
+wire [63:0] w_dot;
+assign w_energizer = ENERGIZER;
+assign w_dot = DOT;
 
 always_comb begin
     if (i_mem_select == 2'b11) begin
@@ -123,11 +131,33 @@ always_comb begin
         // endcase
     end
     else if (i_mem_select == 2'b01) begin
-        w_address_tile = i_address_map[5:0] * 64 + i_tile_offset;
-        w_data_char = 4'd2;
-        o_VGA_R = w_VGA_R;
-        o_VGA_G = w_VGA_G;
-        o_VGA_B = w_VGA_B;
+        if (i_address_item == I_DOT && 
+            // ((i_tile_offset[5:3] == 3) || (i_tile_offset[5:3] == 4)) && 
+            // ((i_tile_offset[2:0] == 3) || (i_tile_offset[2:0] == 4))
+            w_dot[i_tile_offset] == 1
+        ) begin
+            w_address_tile = 0;
+            w_data_char = 4'd2;
+            o_VGA_R = 8'd255;
+            o_VGA_G = 8'd255;
+            o_VGA_B = 8'd255;
+        end
+        else if (i_address_item == I_ENERGIZER && 
+            w_energizer[i_tile_offset] == 1
+        ) begin
+            w_address_tile = 0;
+            w_data_char = 4'd2;
+            o_VGA_R = 8'd255;
+            o_VGA_G = 8'd255;
+            o_VGA_B = 8'd255;
+        end
+        else begin
+            w_address_tile = i_address_map[5:0] * 64 + i_tile_offset;
+            w_data_char = 4'd2;
+            o_VGA_R = w_VGA_R;
+            o_VGA_G = w_VGA_G;
+            o_VGA_B = w_VGA_B;
+        end
         // case (i_address_map)
         //     5'd0: begin
         //         o_VGA_R = 8'b00000000;

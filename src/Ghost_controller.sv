@@ -18,7 +18,7 @@ module Ghost_controller(
     output [3:0] o_blinky_state,
     output [3:0] o_pinky_state,
     output [3:0] o_inky_state,
-    output [3:0] o_clyde_state,
+    output [3:0] o_clyde_state
 );
 
 reg [3:0]  r_ghost_state, r_ghost_state_prev;  // for chase and scatter and general frighten

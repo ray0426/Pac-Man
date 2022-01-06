@@ -199,6 +199,7 @@ wire [9:0] w_clyde_y;
 wire [1:0] w_mem_select;
 wire [7:0] w_address_map;
 wire [7:0] w_address_char;
+wire [7:0] w_address_item; // tbc
 wire [5:0] w_tile_offset;
 wire [5:0] w_char_offset;
 
@@ -211,6 +212,7 @@ Vga_Mem_addr_generator vga_mem_addr_generator(
 	.i_y_cord(w_vga_y_cord),
 
 	.i_map(w_map),
+	.i_items(w_items),
 	.i_pacman_x(w_pacman_x),
 	.i_pacman_y(w_pacman_y),
 	.i_blinky_x(w_blinky_x),
@@ -225,6 +227,7 @@ Vga_Mem_addr_generator vga_mem_addr_generator(
 	.o_mem_select(w_mem_select),
 	.o_address_map(w_address_map),
 	.o_address_char(w_address_char),
+	.o_address_item(w_address_item),
 	.o_tile_offset(w_tile_offset),
 	.o_char_offset(w_char_offset)
 );
@@ -236,6 +239,7 @@ Mem_controller mam_controller(
 	.i_mem_select(w_mem_select),
 	.i_address_map(w_address_map),
 	.i_address_char(w_address_char),
+	.i_address_item(w_address_item),
 	.i_tile_offset(w_tile_offset),
 	.i_char_offset(w_char_offset),
 
@@ -249,7 +253,8 @@ wire       w_board_reload;
 wire       w_board_reload_done;
 wire       w_pacman_eaten;
 wire       w_dot_clear;
-wire       w_ghost_reload;        // to be connected
+wire       w_ghost_reload;
+wire       w_pacman_reload;       // to be connected
 wire [7:0] w_level;               // to be connected
 
 assign LEDG[3:0] = w_game_state;
@@ -259,21 +264,23 @@ assign w_dot_clear = (w_dots_counter == 0);
 Game_controller game_controller(
 	.i_clk(CLOCK_50),
 	.i_rst_n(~rst_main),
-	.i_board_reload_done,
 	.i_game_start(KEY[0]),
 	.i_game_pause(SW[16]),
 	.i_board_reload_done(w_board_reload_done),
+	.i_items_reload_done(w_items_reload_done),   // tbc
 	.i_pacman_eaten(w_pacman_eaten),
 	.i_dot_clear(w_dot_clear),
 
 	.o_game_state(w_game_state),
-	.o_ghost_reload(w_ghost_reload),
 	.o_board_reload(w_board_reload),
+	.o_items_reload(w_items_reload),
+	.o_ghost_reload(w_ghost_reload),
+	.o_pacman_reload(w_pacman_reload),
 	.o_level(w_level)
+	//,	.d_lives()
 );
 
 wire       w_items_reload;          // to be connect, from game ctrl
-wire [1:0] w_items_map[0:35][0:27]; // to be connect, from items loader or "self product"->preferable
 wire       w_item_eaten;            
 wire [1:0] w_item_eaten_type;       
 wire [5:0] w_item_eaten_x;          
@@ -282,17 +289,18 @@ wire [1:0] w_items[0:35][0:27];     // to be connect, for vga and collision ctrl
 wire [7:0] w_dots_counter;          // for game ctrl
 wire [7:0] w_dots_eaten_counter;    // to be connect, for ghost ctrl
 wire [3:0] w_energizer_counter;     // to be connect
+wire       w_items_reload_done;
 
 Items_controller items_controller(
     .i_clk(CLOCK_50),
     .i_rst_n(~rst_main),
     .i_items_reload(w_items_reload),             // i_items_map must be ready when i_items_relaod
-    .i_items_map(w_items_map),
     .i_item_eaten(w_item_eaten),
     .i_item_eaten_type(w_item_eaten_type),
     .i_item_x(w_item_eaten_x),
     .i_item_y(w_item_eaten_y),
 
+	.o_reload_done(w_items_reload_done),
     .o_items(w_items),   // 0: none, 1: dot, 2:energizer
     .o_dots_counter(w_dots_counter),
     .o_dots_eaten_counter(w_dots_eaten_counter),

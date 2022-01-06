@@ -11,6 +11,7 @@ module Vga_Mem_addr_generator(
 	input  [9:0]   i_x_cord,               // 0~479
 	input  [9:0]   i_y_cord,               // 0~639
 	input  [7:0]   i_map[0:35][0:27],      // a 2D array rows=36, cols=28 and each 8-bit wide
+    input  [1:0]   i_items[0:35][0:27],    // a 2D array rows=36, cols=28 and each 2-bit wide
 	input  [9:0]   i_pacman_x,             // 0~479
 	input  [9:0]   i_pacman_y,             // 0~639
 	// input  [9:0]   i_ghost1_x,             // 0~479
@@ -27,6 +28,7 @@ module Vga_Mem_addr_generator(
 	output [1:0]   o_mem_select,           // MEM_MAP or MEM_CHAR
 	output [7:0]   o_address_map,          // TBD
 	output [7:0]   o_address_char,         // TBD
+    output [1:0]   o_address_item,
     output [5:0]   o_tile_offset,          // for rgb decoder choose which pixel, tile
     output [5:0]   o_char_offset           // for rgb decoder choose which pixel, character
 );
@@ -137,6 +139,9 @@ always_comb begin
             // board
             o_mem_select[0] = 1;
             o_address_map = i_map[i_x_cord>>3][i_y_cord>>3];
+
+            // items
+            o_address_item = i_items[i_x_cord>>3][i_y_cord>>3];
             // case (i_map[i_x_cord>>3][i_y_cord>>3])
             //     TILE_BLANK: begin
             //         o_address_map = 0;   // TBD
@@ -153,6 +158,7 @@ always_comb begin
             o_mem_select = 2'd0;
             o_address_map = 0;
             o_address_char = 0;
+            o_address_item = 0;
             o_char_offset = 0;
         end
     end
@@ -160,6 +166,7 @@ always_comb begin
         o_mem_select = 2'd0;
         o_address_map = 0;
         o_address_char = 0;
+        o_address_item = 0;
         o_char_offset = 0;
     end
 end

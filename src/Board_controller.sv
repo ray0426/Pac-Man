@@ -12,6 +12,7 @@ reg [7:0] board_w[0:35][0:27];
 reg [9:0] counter_r, counter_w;
 reg       state_r, state_w;
 reg       reload_done_r, reload_done_w;
+assign o_reload_done = reload_done_r;
 
 enum {
 	S_IDLE,
@@ -69,7 +70,7 @@ always_comb begin
 			else begin
 				counter_w = counter_r;
 				state_w = state_r;
-				reload_done_w = reload_done_r;
+				reload_done_w = 0;
 			end
 		end
 		S_RELOAD: begin

@@ -36,14 +36,14 @@ always_ff @(posedge i_clk or negedge i_rst_n) begin
                     end
                 end
                 G_CHASE      : begin
-                    if (r_ghost_state == FRIGHTENED && r_revived == 0) begin
-                        r_state <= G_FRIGHTERED;
+                    if (i_ghost_state == FRIGHTENED && r_revived == 0) begin
+                        r_state <= G_FRIGHTENED;
                     end
-                    else if (r_ghost_state == G_CHASE) begin
+                    else if (i_ghost_state == G_CHASE) begin
                         r_state <= G_CHASE;
                         r_revived <= 0;
                     end
-                    else if (r_ghost_state == SCATTER) begin
+                    else if (i_ghost_state == SCATTER) begin
                         r_state <= G_SCATTER;
                         r_revived <= 0;
                     end
@@ -52,14 +52,14 @@ always_ff @(posedge i_clk or negedge i_rst_n) begin
                     end
                 end
                 G_SCATTER    : begin
-                    if (r_ghost_state == FRIGHTENED && r_revived == 0) begin
-                        r_state <= G_FRIGHTERED;
+                    if (i_ghost_state == FRIGHTENED && r_revived == 0) begin
+                        r_state <= G_FRIGHTENED;
                     end
-                    else if (r_ghost_state == CHASE) begin
+                    else if (i_ghost_state == CHASE) begin
                         r_state <= G_CHASE;
                         r_revived <= 0;
                     end
-                    else if (r_ghost_state == SCATTER) begin
+                    else if (i_ghost_state == SCATTER) begin
                         r_state <= G_SCATTER;
                         r_revived <= 0;
                     end
@@ -68,10 +68,10 @@ always_ff @(posedge i_clk or negedge i_rst_n) begin
                     end
                 end
                 G_FRIGHTENED : begin
-                    if (r_ghost_state == CHASE) begin
+                    if (i_ghost_state == CHASE) begin
                         r_state <= G_CHASE;
                     end
-                    else if (r_ghost_state == SCATTER) begin
+                    else if (i_ghost_state == SCATTER) begin
                         r_state <= G_SCATTER;
                     end
                     else if (i_eaten) begin
@@ -84,10 +84,10 @@ always_ff @(posedge i_clk or negedge i_rst_n) begin
                 G_DIE        : begin
                     if (i_returned) begin
                         r_revived <= 1;
-                        if (r_ghost_state == CHASE) begin
+                        if (i_ghost_state == CHASE) begin
                             r_state <= G_CHASE;
                         end
-                        else if (r_ghost_state == SCATTER) begin
+                        else if (i_ghost_state == SCATTER) begin
                             r_state <= G_SCATTER;
                         end
                         else begin

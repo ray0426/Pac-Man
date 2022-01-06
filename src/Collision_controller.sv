@@ -45,7 +45,7 @@ Collision_controller_each collision_controller_blinky(
     .i_ghost_state(i_blinky_state),
 
     .o_pacman_eaten(w_pacman_eaten_blinky),
-    .o_ghost_eaten(o_blinky_blinky)
+    .o_ghost_eaten(o_blinky_eaten)
 );
 
 Collision_controller_each collision_controller_pinky(
@@ -56,7 +56,7 @@ Collision_controller_each collision_controller_pinky(
     .i_ghost_state(i_pinky_state),
 
     .o_pacman_eaten(w_pacman_eaten_pinky),
-    .o_ghost_eaten(o_blinky_pinky)
+    .o_ghost_eaten(o_pinky_eaten)
 );
 
 Collision_controller_each collision_controller_inky(
@@ -67,7 +67,7 @@ Collision_controller_each collision_controller_inky(
     .i_ghost_state(i_inky_state),
 
     .o_pacman_eaten(w_pacman_eaten_inky),
-    .o_ghost_eaten(o_blinky_inky)
+    .o_ghost_eaten(o_inky_eaten)
 );
 
 Collision_controller_each collision_controller_clyde(
@@ -78,7 +78,7 @@ Collision_controller_each collision_controller_clyde(
     .i_ghost_state(i_clyde_state),
 
     .o_pacman_eaten(w_pacman_eaten_clyde),
-    .o_ghost_eaten(o_blinky_clyde)
+    .o_ghost_eaten(o_clyde_eaten)
 );
 
 integer i, j;
