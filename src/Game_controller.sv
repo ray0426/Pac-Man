@@ -16,7 +16,9 @@ module Game_controller(
     output       o_pacman_reload,
     output [7:0] o_level,
 
-    output [3:0] d_lives
+    output [3:0] d_lives,
+
+    output [1:0] d_reloads
 );
 
 reg [3:0] r_state;
@@ -35,6 +37,7 @@ assign o_ghost_reload = r_ghost_reload;
 assign o_pacman_reload = r_pacman_reload;
 assign o_level = r_level;
 assign d_lives = r_lives;
+assign d_reloads = r_reloads;
 
 always_ff @(posedge i_clk or negedge i_rst_n) begin
     if (~i_rst_n) begin
@@ -89,7 +92,7 @@ always_ff @(posedge i_clk or negedge i_rst_n) begin
                     if (r_lives >= 1) begin
                         r_lives <= r_lives - 1;
                         r_state <= r_state;
-                        r_pacman_reload <= 0;
+                        r_pacman_reload <= 1;
                     end
                     else begin
                         r_state <= GS_GAMEOVER;

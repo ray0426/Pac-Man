@@ -82,6 +82,7 @@ Collision_controller_each collision_controller_clyde(
 );
 
 integer i, j;
+
 always_comb begin
     if (i_game_state == GS_PLAY) begin
         if (i_items[i_pacman_x][i_pacman_y] == I_DOT) begin
