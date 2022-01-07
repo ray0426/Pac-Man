@@ -1,6 +1,6 @@
-// Ghost Algorithm for chase, scatter, frightened, idle, died mode.
-// Tile version.
-module GhostAlgo_Blinky ( 
+// Ghost Algorithm for chase, scatter, frightened mode. 
+// Pixel version.
+module GhostAlgo_Clyde ( 
     input i_clk, // global clock, (CLOCK_50).
     input i_rst, // reset, like i_pacman_reload.
 	 input i_pacman_reload, // reload.
@@ -10,7 +10,7 @@ module GhostAlgo_Blinky (
     input [3:0] i_mode, // chase, frightened, scatter, idle, died mode.
 	 //input [3:0] random_move_2, // random 2 choice.
 	 //input [3:0] random_move_3, // random 3 choice.
-	 
+
     output [9:0] o_x_location, // 10 bits, the x location of blinky.
     output [9:0] o_y_location, // 10 bits. the y location of blinky.
     output reach, // in chase, frightened mode, ghost have catched pac-man(or inversely).
@@ -23,7 +23,6 @@ module GhostAlgo_Blinky (
     output [3:0] case_num, // debug for the categories of intersections.
     output [3:0] mode_state // debug for different mode state.
 );
-
 
 logic CLOCK_1hz;
 
@@ -48,9 +47,6 @@ Random_direction random_3_num (
 	.i_rst_n(~i_rst),
 	.random_move(random_move_3)
 );
-
-
-
 // next move direction.
 parameter UP = 2'b00;
 parameter DOWN = 2'b01;
@@ -63,7 +59,6 @@ parameter MODE_CHASE = 4'd1;
 parameter MODE_SCATTER = 4'd2;
 parameter MODE_FRIGHTENED = 4'd3;
 parameter MODE_DIED = 4'd4;
-
 
 logic right_next, left_next, up_next, down_next;
 
@@ -97,6 +92,13 @@ assign mode_state = state;
 
 logic [3:0] tile;
 
+// the target of Clyde depends on its distance from pac-man.
+logic [9:0] target_x;
+logic [9:0] target_y;
+
+// check the distance between Clyde and Pac-man >= 8 (Chase) or < 8 (Scatter).
+logic chase_like_blinky;
+
 // Tile: 36x28
 // Pixel: 288x224
 
@@ -118,12 +120,79 @@ parameter ROW = 6'd36;
 parameter COL = 6'd28;
 
 // scatter mode.
-//parameter BLINKY_TARGET_X = 9'd28;
-//parameter BLINKY_TARGET_Y = 9'd204;
+parameter CLYDE_TARGET_X = 9'd252;
+parameter CLYDE_TARGET_Y = 9'd4;
+
 
 assign illegal = (i_board[(o_x_location + 4) >> 3][(o_y_location + 4) >> 3] == 1'b0)? 1'b0: 1'b1;
 
 assign test_distance = distance(pac_x, pac_y, o_x_location, o_y_location);
+
+// calculate Norm2 distance by tile for pinky.
+function [11:0] distance_pinky;
+	 input [9:0] pac_x;  // the x-coordination of pac-man.
+    input [9:0] pac_y;  // the y-coordination of pac-man.
+    input [9:0] o_x_location; // the x-coordination of ghost.
+    input [9:0] o_y_location; // the y-coordination of ghost.
+	 input [1:0] next_direction; // pac-man direction.
+	 
+	 logic [5:0] pac_tile_x;
+	 logic [5:0] pac_tile_y;
+	 
+	 logic [5:0] ghost_tile_x;
+	 logic [5:0] ghost_tile_y;
+	 
+	 logic [5:0] target_tile_x;
+	 logic [5:0] target_tile_y;
+	 
+	 logic [5:0] abs_x; // absolute value of distance in the x-coordination.
+    logic [5:0] abs_y; // absolute value of distance in the y-coordination.
+    
+	 
+	 pac_tile_x = (pac_x + 3'd4) >> 3;
+	 pac_tile_y = (pac_y + 3'd4) >> 3;
+	 
+	 ghost_tile_x = (o_x_location + 3'd4) >> 3;
+	 ghost_tile_y = (o_y_location + 3'd4) >> 3;
+	 
+	 if (next_direction == LEFT) begin 
+	     target_tile_x = (pac_tile_x - 3'd4 >= 0)? (pac_tile_x - 3'd4): pac_tile_x;
+		  target_tile_y = pac_tile_y;
+	 end
+	 else if (next_direction == RIGHT) begin
+	     target_tile_x = (pac_tile_x + 3'd4 < ROW)? (pac_tile_x + 3'd4): pac_tile_x;
+		  target_tile_y = pac_tile_y;
+	 end
+	 else if (next_direction == UP) begin
+	     target_tile_y = (pac_tile_y - 3'd4 >= 0)? (pac_tile_y - 3'd4): pac_tile_y;
+		  target_tile_x = pac_tile_x;
+	 end
+	 else begin
+	     target_tile_y = (pac_tile_y + 3'd4 < COL)? (pac_tile_y + 3'd4): pac_tile_y;
+		  target_tile_x = pac_tile_x;
+	 end
+	 
+	 if (target_tile_x >= ghost_tile_x) begin
+	     abs_x = target_tile_x - ghost_tile_x;
+	 end
+	 
+	 else begin
+		  abs_x = ghost_tile_x - target_tile_x; 
+	 end
+	 
+	 if (target_tile_y >= ghost_tile_y) begin
+	     abs_y = target_tile_y - ghost_tile_y;
+	 end
+	 
+	 else begin
+		  abs_y = ghost_tile_y - target_tile_y; 
+	 end
+	 
+	 distance_pinky = abs_x * abs_x + abs_y * abs_y;
+	 
+endfunction
+
+
 
 // calculate Norm2 distance by tile.
 function [11:0] distance;
@@ -245,20 +314,28 @@ function [3:0] tile_situation;
 	
 endfunction
 
+
+// check the distance between Clyde and Pac-man >= 8 (Chase) or < 8 (Scatter).
+assign chase_like_blinky = (distance(pac_x, pac_y, o_x_location, o_y_location) >= (8 * 8))? 1'b1: 1'b0;
+
+// the target of Clyde depends on its distance from pac-man.
+assign target_x = (chase_like_blinky == 1'b1)? pac_x: CLYDE_TARGET_X;
+assign target_y = (chase_like_blinky == 1'b1)? pac_y: CLYDE_TARGET_Y;
+
 // the categories of current tile.
 assign tile = tile_situation(o_x_location, o_y_location, i_board, next_direction); // cow bei
 
 // the distance between next-predict location of ghost and current location of pac-man.
-assign right_distance = distance(pac_x, pac_y, o_x_location, o_y_location + 4'd8);
-assign left_distance = distance(pac_x, pac_y, o_x_location, o_y_location - 4'd8);
-assign down_distance = distance(pac_x, pac_y, o_x_location + 4'd8, o_y_location);
-assign up_distance = distance(pac_x, pac_y, o_x_location - 4'd8, o_y_location);
+assign right_distance = distance(target_x, target_y, o_x_location, o_y_location + 4'd8);
+assign left_distance = distance(target_x, target_y, o_x_location, o_y_location - 4'd8);
+assign down_distance = distance(target_x, target_y, o_x_location + 4'd8, o_y_location);
+assign up_distance = distance(target_x, target_y, o_x_location - 4'd8, o_y_location);
 
-// the distance between next-predict location of ghost and its target location.
-assign right_distance2 = distance(10'd28, 10'd204, o_x_location, o_y_location + 4'd8);
-assign left_distance2 = distance(10'd28, 10'd204, o_x_location, o_y_location - 4'd8);
-assign down_distance2 = distance(10'd28, 10'd204, o_x_location + 4'd8, o_y_location);
-assign up_distance2 = distance(10'd28, 10'd204, o_x_location - 4'd8, o_y_location);
+// the distance between next-predict location of ghost and its target location for scatter mode.
+assign right_distance2 = distance(CLYDE_TARGET_X, CLYDE_TARGET_Y, o_x_location, o_y_location + 4'd8);
+assign left_distance2 = distance(CLYDE_TARGET_X, CLYDE_TARGET_Y, o_x_location, o_y_location - 4'd8);
+assign down_distance2 = distance(CLYDE_TARGET_X, CLYDE_TARGET_Y, o_x_location + 4'd8, o_y_location);
+assign up_distance2 = distance(CLYDE_TARGET_X, CLYDE_TARGET_Y, o_x_location - 4'd8, o_y_location);
 
 // the distance between next-predict location of ghost and its home location.
 assign right_distance3 = distance(10'd108, 10'd100, o_x_location, o_y_location + 4'd8);
@@ -266,30 +343,29 @@ assign left_distance3 = distance(10'd108, 10'd100, o_x_location, o_y_location - 
 assign down_distance3 = distance(10'd108, 10'd100, o_x_location + 4'd8, o_y_location);
 assign up_distance3 = distance(10'd108, 10'd100, o_x_location - 4'd8, o_y_location);
 
-
 // go through the map, right to left, or, left to right.
 logic right_to_left, left_to_right;
 assign right_to_left = (((o_x_location + 3'd4) >> 3) == 17 && ((o_y_location + 3'd4) >> 3) == 26 && next_direction == RIGHT)? 1'b1: 1'b0;
 assign left_to_right = (((o_x_location + 3'd4) >> 3) == 17 && ((o_y_location + 3'd4) >> 3) == 1 && next_direction == LEFT)? 1'b1: 1'b0;
 
-logic [9:0] blinky_target_x;
-logic [9:0] blinky_target_y;
+
+logic [9:0] clyde_target_x;
+logic [9:0] clyde_target_y;
 logic legal_test, legal_test2;
-logic walk_through_home;
 
 always_ff @(posedge CLOCK_1hz) begin
     if (i_rst) begin
-        o_x_location <= 9'd108; // ghost initial location.
-        o_y_location <= 9'd100;
+        o_x_location <= 9'd132; // ghost initial location.
+        o_y_location <= 9'd116;
         
         state <= MODE_IDLE;
         
-        left_next <= 1'b0;
-        right_next <= 1'b1;
+        left_next <= 1'b1;
+        right_next <= 1'b0;
         up_next <= 1'b0;
         down_next <= 1'b0;
         
-        next_direction <= RIGHT; // ghost initial move direction.
+        next_direction <= LEFT; // ghost initial move direction.
         
         reach <= 1'b0; // no reach.
         count <= 4'd0;
@@ -303,17 +379,17 @@ always_ff @(posedge CLOCK_1hz) begin
 	 
 	 else if (i_pacman_reload == 1'b1) begin
 	 
-	     o_x_location <= 9'd108; // ghost initial location.
-        o_y_location <= 9'd100;
+	     o_x_location <= 9'd132; // ghost initial location.
+        o_y_location <= 9'd116;
         
         state <= MODE_IDLE;
         
-        left_next <= 1'b0;
-        right_next <= 1'b1;
+        left_next <= 1'b1;
+        right_next <= 1'b0;
         up_next <= 1'b0;
         down_next <= 1'b0;
         
-        next_direction <= RIGHT; // ghost initial move direction.
+        next_direction <= LEFT; // ghost initial move direction.
         
         reach <= 1'b0; // no reach.
         count <= 4'd0;
@@ -328,17 +404,17 @@ always_ff @(posedge CLOCK_1hz) begin
     else begin
         case(state)
 				MODE_IDLE: begin
-				    o_x_location <= 9'd108; // ghost initial location.
-					 o_y_location <= 9'd100;
+				    o_x_location <= 9'd132; // ghost initial location.
+					 o_y_location <= 9'd116;
 					  
 					 state <= MODE_IDLE;
 					  
-					 left_next <= 1'b0;
-					 right_next <= 1'b1;
+					 left_next <= 1'b1;
+					 right_next <= 1'b0;
 					 up_next <= 1'b0;
 					 down_next <= 1'b0;
 					  
-					 next_direction <= RIGHT; // ghost initial move direction.
+					 next_direction <= LEFT; // ghost initial move direction.
 					  
 					 reach <= 1'b0; // no reach.
 					 count <= 4'd0;
@@ -350,18 +426,17 @@ always_ff @(posedge CLOCK_1hz) begin
 					 
 					 if (i_mode == MODE_CHASE) begin
 					     state <= MODE_CHASE;
-						  left_next <= 1'b0;
-						  right_next <= 1'b1;
+						  left_next <= 1'b1;
+						  right_next <= 1'b0;
 						  up_next <= 1'b0;
 						  down_next <= 1'b0;
 						  count <= 4'd0;
-						  next_direction <= RIGHT; // ghost initial move direction.
+						  next_direction <= LEFT; // ghost initial move direction.
 					 end
 					 else if (i_mode == MODE_SCATTER) begin
 						  state <= MODE_SCATTER;
 					     count <= 4'd8;
-						  blinky_target_x <= 9'd28;
-						  blinky_target_y <= 9'd204;
+						  
 					 end
 					 else if (i_mode == MODE_FRIGHTENED) begin
 						  state <= MODE_FRIGHTENED;
@@ -411,9 +486,7 @@ always_ff @(posedge CLOCK_1hz) begin
 							  else if (i_mode == MODE_SCATTER) begin
 								   state <= MODE_SCATTER;
 								   count <= 4'd8;
-									
-								   blinky_target_x <= 9'd28;
-								   blinky_target_y <= 9'd204;
+							
 							  end
 							  
 							  else if (o_x_location == 9'd132 && o_y_location == 9'd100) begin // arrive at home.
@@ -1084,7 +1157,6 @@ always_ff @(posedge CLOCK_1hz) begin
 					 		 
 				end
             MODE_CHASE: begin
-					 
                 if (o_x_location == pac_x && o_y_location == pac_y) begin // catch the target.
                     reach <= 1'b1;
                     count <= 4'd0;
@@ -1094,12 +1166,12 @@ always_ff @(posedge CLOCK_1hz) begin
                 
                 else begin
                     if (count == 4'd8) begin // count = 8, predict next move's next direction.
-                        
+								
                         if (i_mode == MODE_SCATTER) begin
                             state <= MODE_SCATTER;
 									 count <= 4'd8;
-									 blinky_target_x <= 9'd28;
-									 blinky_target_y <= 9'd204;
+									 clyde_target_x <= 9'd252;
+									 clyde_target_y <= 9'd4;
                         end
 								
 								else if (i_mode == MODE_IDLE) begin
@@ -1196,6 +1268,32 @@ always_ff @(posedge CLOCK_1hz) begin
 									  
 								end
 								
+								else if (o_x_location == 9'd132 && o_y_location == 9'd116) begin
+									  legal_test <= 1'b1;
+									  next_direction <= LEFT;
+									  
+									  left_next <= 1'b1;
+									  right_next <= 1'b0;
+									  up_next <= 1'b0;
+									  down_next <= 1'b0;
+									
+									  count <= 4'd0;
+									  
+								end
+								
+								else if (o_x_location == 9'd132 && o_y_location == 9'd108) begin
+									  legal_test <= 1'b1;
+									  next_direction <= LEFT;
+									  
+									  left_next <= 1'b1;
+									  right_next <= 1'b0;
+									  up_next <= 1'b0;
+									  down_next <= 1'b0;
+									
+									  count <= 4'd0;
+									  
+								end
+								
 								else if (o_x_location == 9'd108 && o_y_location == 9'd100 && legal_test == 1'b1) begin
 									  legal_test <= 1'b0;
 									  
@@ -1224,7 +1322,6 @@ always_ff @(posedge CLOCK_1hz) begin
 								end
 							
 								
-											
                         else begin // chase mode.
 								
                             state <= MODE_CHASE;
@@ -1859,17 +1956,8 @@ always_ff @(posedge CLOCK_1hz) begin
             end // end mode chase.
             
             MODE_SCATTER: begin
-					 
-                if (o_x_location == pac_x && o_y_location == pac_y) begin // catch the target.
-                    reach <= 1'b1;
-                    count <= 4'd0;
-                    // todo
-                    
-                end
-					 
-				    
                 if (count == 4'd8) begin
-							
+
 							if (i_mode == MODE_CHASE) begin
 								state <= MODE_CHASE;
 								count <= 4'd8;
@@ -1914,18 +2002,37 @@ always_ff @(posedge CLOCK_1hz) begin
 								
 							end
 							
-							else if (o_x_location == 9'd28 && o_y_location == 9'd204) begin
+							else if (o_x_location == 9'd252 && o_y_location == 9'd4) begin
 								target1 <= 1'b1;
 								count <= 4'd0;
 								
-								if (next_direction == RIGHT) begin
-									next_direction <= DOWN;
-									down_next <= 1'b1;
+								if (next_direction == DOWN) begin
+									next_direction <= RIGHT;
+									down_next <= 1'b0;
                            up_next <= 1'b0;
+                           right_next <= 1'b1;
+                           left_next <= 1'b0;
+								end
+								else begin // left.
+									next_direction <= UP;
+									down_next <= 1'b0;
+                           up_next <= 1'b1;
                            right_next <= 1'b0;
                            left_next <= 1'b0;
 								end
-								else begin // up.
+							end
+							
+							else if (o_x_location == 9'd252 && o_y_location == 9'd92 && target1 == 1'b1) begin
+								count <= 4'd0;
+								
+								if (next_direction == RIGHT) begin
+									next_direction <= UP;
+									down_next <= 1'b0;
+                           up_next <= 1'b1;
+                           right_next <= 1'b0;
+                           left_next <= 1'b0;
+								end
+								else begin // down.
 									next_direction <= LEFT;
 									down_next <= 1'b0;
                            up_next <= 1'b0;
@@ -1934,9 +2041,66 @@ always_ff @(posedge CLOCK_1hz) begin
 								end
 							end
 							
-							else if (o_x_location == 9'd28 && o_y_location == 9'd164 && target1 == 1'b1) begin
+							else if (o_x_location == 9'd228 && o_y_location == 9'd92 && target1 == 1'b1) begin
 								count <= 4'd0;
-								
+							
+								if (next_direction == UP) begin
+									next_direction <= LEFT;
+									down_next <= 1'b0;
+                           up_next <= 1'b0;
+                           right_next <= 1'b0;
+                           left_next <= 1'b1;
+								end
+								else begin // right.
+									next_direction <= DOWN;
+									down_next <= 1'b1;
+                           up_next <= 1'b0;
+                           right_next <= 1'b0;
+                           left_next <= 1'b0;
+								end
+							end
+							
+							else if (o_x_location == 9'd228 && o_y_location == 9'd68 && target1 == 1'b1) begin
+								count <= 4'd0;
+							
+								if (next_direction == LEFT) begin
+									next_direction <= UP;
+									down_next <= 1'b0;
+                           up_next <= 1'b1;
+                           right_next <= 1'b0;
+                           left_next <= 1'b0;
+								end
+								else begin // down.
+									next_direction <= RIGHT;
+									down_next <= 1'b0;
+                           up_next <= 1'b0;
+                           right_next <= 1'b1;
+                           left_next <= 1'b0;
+								end
+							end
+							
+							else if (o_x_location == 9'd204 && o_y_location == 9'd68 && target1 == 1'b1) begin
+								count <= 4'd0;
+							
+								if (next_direction == UP) begin
+									next_direction <= LEFT;
+									down_next <= 1'b0;
+                           up_next <= 1'b0;
+                           right_next <= 1'b0;
+                           left_next <= 1'b1;
+								end
+								else begin // right.
+									next_direction <= DOWN;
+									down_next <= 1'b1;
+                           up_next <= 1'b0;
+                           right_next <= 1'b0;
+                           left_next <= 1'b0;
+								end
+							end
+							
+							else if (o_x_location == 9'd204 && o_y_location == 9'd44 && target1 == 1'b1) begin
+								count <= 4'd0;
+							
 								if (next_direction == LEFT) begin
 									next_direction <= DOWN;
 									down_next <= 1'b1;
@@ -1953,17 +2117,36 @@ always_ff @(posedge CLOCK_1hz) begin
 								end
 							end
 							
-							else if (o_x_location == 9'd60 && o_y_location == 9'd164 && target1 == 1'b1) begin
+							else if (o_x_location == 9'd228 && o_y_location == 9'd44 && target1 == 1'b1) begin
 								count <= 4'd0;
 							
-								if (next_direction == RIGHT) begin
+								if (next_direction == DOWN) begin
+									next_direction <= LEFT;
+									down_next <= 1'b0;
+                           up_next <= 1'b0;
+                           right_next <= 1'b0;
+                           left_next <= 1'b1;
+								end
+								else begin // right.
 									next_direction <= UP;
 									down_next <= 1'b0;
                            up_next <= 1'b1;
                            right_next <= 1'b0;
                            left_next <= 1'b0;
 								end
-								else begin // down.
+							end
+							
+							else if (o_x_location == 9'd228 && o_y_location == 9'd4 && target1 == 1'b1) begin
+								count <= 4'd0;
+							
+								if (next_direction == LEFT) begin
+									next_direction <= DOWN;
+									down_next <= 1'b1;
+                           up_next <= 1'b0;
+                           right_next <= 1'b0;
+                           left_next <= 1'b0;
+								end
+								else begin // up.
 									next_direction <= RIGHT;
 									down_next <= 1'b0;
                            up_next <= 1'b0;
@@ -1972,39 +2155,32 @@ always_ff @(posedge CLOCK_1hz) begin
 								end
 							end
 							
-							else if (o_x_location == 9'd60 && o_y_location == 9'd204 && target1 == 1'b1) begin
-								count <= 4'd0;
-							
-								if (next_direction == RIGHT) begin
-									next_direction <= UP;
-									down_next <= 1'b0;
-                           up_next <= 1'b1;
-                           right_next <= 1'b0;
-                           left_next <= 1'b0;
-								end
-								else begin // down.
-									next_direction <= LEFT;
-									down_next <= 1'b0;
-                           up_next <= 1'b0;
-                           right_next <= 1'b0;
-                           left_next <= 1'b1;
-								end
-							end
-							
 							else if (o_x_location == 9'd124 && o_y_location == 9'd100) begin
-								  next_direction <= UP;
-								  
-								  left_next <= 1'b0;
-								  right_next <= 1'b0;
-								  up_next <= 1'b1;
-								  down_next <= 1'b0;
+									  next_direction <= UP;
+									  
+									  left_next <= 1'b0;
+									  right_next <= 1'b0;
+									  up_next <= 1'b1;
+									  down_next <= 1'b0;
+									
+									  count <= 4'd0;
+									  
+							   end
+								 
+								else if (o_x_location == 9'd116 && o_y_location == 9'd100) begin
+									  next_direction <= UP;
+									  
+									  left_next <= 1'b0;
+									  right_next <= 1'b0;
+									  up_next <= 1'b1;
+									  down_next <= 1'b0;
+									
+									  count <= 4'd0;
+									  
+								end 
 								
-								  count <= 4'd0;
-								  
-							end
-							
-							else if (o_x_location == 9'd132 && o_y_location == 9'd100) begin
-									  legal_test2 <= 1'b1;
+								else if (o_x_location == 9'd132 && o_y_location == 9'd100) begin
+									  legal_test <= 1'b1;
 									  next_direction <= UP;
 									  
 									  left_next <= 1'b0;
@@ -2015,20 +2191,35 @@ always_ff @(posedge CLOCK_1hz) begin
 									  count <= 4'd0;
 									  
 								end
-							 
-							else if (o_x_location == 9'd116 && o_y_location == 9'd100) begin
-								  next_direction <= UP;
-								  
-								  left_next <= 1'b0;
-								  right_next <= 1'b0;
-								  up_next <= 1'b1;
-								  down_next <= 1'b0;
 								
-								  count <= 4'd0;
-								  
-							end
-							else if (o_x_location == 9'd108 && o_y_location == 9'd100 && legal_test2 == 1'b1) begin
-									  legal_test2 <= 1'b0;
+								else if (o_x_location == 9'd132 && o_y_location == 9'd116) begin
+									  legal_test <= 1'b1;
+									  next_direction <= LEFT;
+									  
+									  left_next <= 1'b1;
+									  right_next <= 1'b0;
+									  up_next <= 1'b0;
+									  down_next <= 1'b0;
+									
+									  count <= 4'd0;
+									  
+								end
+								
+								else if (o_x_location == 9'd132 && o_y_location == 9'd108) begin
+									  legal_test <= 1'b1;
+									  next_direction <= LEFT;
+									  
+									  left_next <= 1'b1;
+									  right_next <= 1'b0;
+									  up_next <= 1'b0;
+									  down_next <= 1'b0;
+									
+									  count <= 4'd0;
+									  
+								end
+								
+								else if (o_x_location == 9'd108 && o_y_location == 9'd100 && legal_test == 1'b1) begin
+									  legal_test <= 1'b0;
 									  
 									  if (left_distance <= right_distance) begin
 										  next_direction <= LEFT;
@@ -2052,7 +2243,7 @@ always_ff @(posedge CLOCK_1hz) begin
 										  count <= 4'd0;
 									  end
 									  
-								end 
+								end
 							
 							else begin// scatter mode.
 								state <= MODE_SCATTER;
@@ -2694,9 +2885,11 @@ always_ff @(posedge CLOCK_1hz) begin
 							state <= MODE_CHASE;
 							count <= 4'd8;
 						end
+						
 						else if (i_mode == MODE_IDLE) begin
-							state <= MODE_IDLE;
+							    state <= MODE_IDLE;
 						end
+						
 						else if (i_mode == MODE_DIED) begin
 							state <= MODE_DIED;
 							
@@ -2734,8 +2927,8 @@ always_ff @(posedge CLOCK_1hz) begin
 						else if (i_mode == MODE_SCATTER) begin
 							state <= MODE_SCATTER;
 							count <= 4'd8;
-							blinky_target_x <= 9'd28;
-							blinky_target_y <= 9'd204;
+							clyde_target_x <= 9'd252;
+							clyde_target_y <= 9'd4;
 						end
 						
 						else if (right_to_left == 1'b1) begin
