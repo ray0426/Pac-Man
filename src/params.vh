@@ -33,4 +33,13 @@ parameter ENERGIZER    = 64'b001111000111111011111111111111111111111111111111011
 parameter TILE_BLANK      = 8'd0;
 parameter TILE_WALL       = 8'd1;
 
+parameter COLOR_BLACK     = 4'd0;
+parameter COLOR_BLUE      = 4'd1;
+parameter COLOR_WHITE     = 4'd2;
+parameter COLOR_YELLOW    = 4'd3;
+parameter COLOR_RED       = 4'd4;
+parameter COLOR_PINK      = 4'd5;
+parameter COLOR_LBLUE     = 4'd6;
+parameter COLOR_ORANGE    = 4'd7;
+
 `endif

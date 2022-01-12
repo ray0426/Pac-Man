@@ -27,10 +27,10 @@ module Vga_Mem_addr_generator(
 
 	output [1:0]   o_mem_select,           // MEM_MAP or MEM_CHAR
 	output [7:0]   o_address_map,          // TBD
-	output [7:0]   o_address_char,         // TBD
+	output [3:0]   o_which_char,         // TBD
     output [1:0]   o_address_item,
     output [5:0]   o_tile_offset,          // for rgb decoder choose which pixel, tile
-    output [5:0]   o_char_offset           // for rgb decoder choose which pixel, character
+    output [7:0]   o_char_offset           // for rgb decoder choose which pixel, character
 );
 
 wire [2:0] x_offset, y_offset;
@@ -39,8 +39,7 @@ assign y_offset = i_y_cord[2:0];
 assign o_tile_offset = x_offset * 8 + y_offset;
 
 wire       overlap_blinky,     overlap_pinky,     overlap_inky,     overlap_clyde;
-wire [1:0] part_offset_blinky, part_offset_pinky, part_offset_inky, part_offset_clyde;
-wire [5:0] char_offset_blinky, char_offset_pinky, char_offset_inky, char_offset_clyde;
+wire [7:0] char_offset_blinky, char_offset_pinky, char_offset_inky, char_offset_clyde;
 
 Show_char show_char_blinky(
     .i_x_cord(i_x_cord),
@@ -49,7 +48,6 @@ Show_char show_char_blinky(
 	.i_char_y(i_blinky_y),     
 
     .o_overlap(overlap_blinky),
-    .o_part_offset(part_offset_blinky),
     .o_char_offset(char_offset_blinky)
 );
 
@@ -60,7 +58,6 @@ Show_char show_char_pinky(
 	.i_char_y(i_pinky_y),     
 
     .o_overlap(overlap_pinky),
-    .o_part_offset(part_offset_pinky),
     .o_char_offset(char_offset_pinky)
 );
 
@@ -71,7 +68,6 @@ Show_char show_char_inky(
 	.i_char_y(i_inky_y),     
 
     .o_overlap(overlap_inky),
-    .o_part_offset(part_offset_inky),
     .o_char_offset(char_offset_inky)
 );
 
@@ -82,13 +78,11 @@ Show_char show_char_clyde(
 	.i_char_y(i_clyde_y),     
 
     .o_overlap(overlap_clyde),
-    .o_part_offset(part_offset_clyde),
     .o_char_offset(char_offset_clyde)
 );
 
 wire       overlap_pacman;
-wire [1:0] part_offset_pacman;
-wire [5:0] char_offset_pacman;
+wire [7:0] char_offset_pacman;
 
 Show_char show_char_pacman(
     .i_x_cord(i_x_cord),
@@ -97,7 +91,6 @@ Show_char show_char_pacman(
 	.i_char_y(i_pacman_y),     
 
     .o_overlap(overlap_pacman),
-    .o_part_offset(part_offset_pacman),
     .o_char_offset(char_offset_pacman)
 );
 
@@ -108,32 +101,32 @@ always_comb begin
             if (overlap_blinky) begin
                 o_mem_select[1] = 1;
                 o_char_offset = char_offset_blinky;
-                o_address_char = 4 + part_offset_blinky;
+                o_which_char = 1;
             end
             else if (overlap_pinky) begin
                 o_mem_select[1] = 1;
                 o_char_offset = char_offset_pinky;
-                o_address_char = 8 + part_offset_pinky;
+                o_which_char = 2;
             end
             else if (overlap_inky) begin
                 o_mem_select[1] = 1;
                 o_char_offset = char_offset_inky;
-                o_address_char = 12 + part_offset_inky;
+                o_which_char = 3;
             end
             else if (overlap_clyde) begin
                 o_mem_select[1] = 1;
                 o_char_offset = char_offset_clyde;
-                o_address_char = 16 + part_offset_clyde;
+                o_which_char = 4;
             end
             else if (overlap_pacman) begin
                 o_mem_select[1] = 1;
                 o_char_offset = char_offset_pacman;
-                o_address_char = part_offset_pacman;
+                o_which_char = 0;
             end
             else begin
                 o_mem_select[1] = 0;
                 o_char_offset = 0;
-                o_address_char = 0;
+                o_which_char = 0;
             end
 
             // board
@@ -157,7 +150,7 @@ always_comb begin
         else begin
             o_mem_select = 2'd0;
             o_address_map = 0;
-            o_address_char = 0;
+            o_which_char = 0;
             o_address_item = 0;
             o_char_offset = 0;
         end
@@ -165,7 +158,7 @@ always_comb begin
     else begin
         o_mem_select = 2'd0;
         o_address_map = 0;
-        o_address_char = 0;
+        o_which_char = 0;
         o_address_item = 0;
         o_char_offset = 0;
     end
