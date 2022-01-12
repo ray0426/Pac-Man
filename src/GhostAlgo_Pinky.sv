@@ -2891,7 +2891,7 @@ always_ff @(posedge CLOCK_1hz) begin
 						  o_x_location <= o_x_location;
 						  o_y_location <= o_y_location;
                     reach <= 1'b1;
-                    count <= count;
+                    count <= (4'd8 - count);
 						  state <= MODE_DIED;
 						  if (next_direction == LEFT) begin
 								  next_direction <= RIGHT;
