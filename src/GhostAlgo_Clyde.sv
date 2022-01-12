@@ -1,6 +1,7 @@
 // Ghost Algorithm for chase, scatter, frightened mode. 
 // Pixel version.
 module GhostAlgo_Clyde ( 
+    input [2:0] test_bean,
     input i_clk, // global clock, (CLOCK_50).
     input i_rst, // reset, like i_pacman_reload.
 	 input i_pacman_reload, // reload.
@@ -24,13 +25,21 @@ module GhostAlgo_Clyde (
     output [3:0] mode_state // debug for different mode state.
 );
 
+logic [27:0] speed_number;
+speedController speedcontrol (
+	.test_bean(test_bean),
+   .i_mode(i_mode),
+   .o_speed(speed_number)
+);
+
+
 logic CLOCK_1hz;
 
 // frequency divider.
 Clock_divider freq_div1 (
     .clock_in(i_clk),
     .clock_out(CLOCK_1hz),
-	 .DIVISOR(28'd781250)
+	 .DIVISOR(speed_number)
 );
 
 logic [3:0] random_move2, random_move_3;
@@ -59,6 +68,7 @@ parameter MODE_CHASE = 4'd1;
 parameter MODE_SCATTER = 4'd2;
 parameter MODE_FRIGHTENED = 4'd3;
 parameter MODE_DIED = 4'd4;
+parameter MODE_PAUSE = 4'd5;
 
 logic right_next, left_next, up_next, down_next;
 
@@ -356,19 +366,19 @@ logic legal_test, legal_test2;
 always_ff @(posedge CLOCK_1hz) begin
     if (i_rst) begin
         o_x_location <= 9'd132; // ghost initial location.
-        o_y_location <= 9'd116;
+        o_y_location <= 9'd116 + 9'd4;
         
         state <= MODE_IDLE;
         
-        left_next <= 1'b1;
+        left_next <= 1'b0;
         right_next <= 1'b0;
-        up_next <= 1'b0;
+        up_next <= 1'b1;
         down_next <= 1'b0;
         
-        next_direction <= LEFT; // ghost initial move direction.
+        next_direction <= UP; // ghost initial move direction.
         
         reach <= 1'b0; // no reach.
-        count <= 4'd0;
+        count <= 4'd8;
 		  case_num <= 4'd0;
 		  
 		  target1 <= 1'b0;
@@ -380,19 +390,19 @@ always_ff @(posedge CLOCK_1hz) begin
 	 else if (i_pacman_reload == 1'b1) begin
 	 
 	     o_x_location <= 9'd132; // ghost initial location.
-        o_y_location <= 9'd116;
+        o_y_location <= 9'd116 + 9'd4;
         
         state <= MODE_IDLE;
         
-        left_next <= 1'b1;
+        left_next <= 1'b0;
         right_next <= 1'b0;
-        up_next <= 1'b0;
+        up_next <= 1'b1;
         down_next <= 1'b0;
         
-        next_direction <= LEFT; // ghost initial move direction.
+        next_direction <= UP; // ghost initial move direction.
         
         reach <= 1'b0; // no reach.
-        count <= 4'd0;
+        count <= 4'd8;
 		  case_num <= 4'd0;
 		  
 		  target1 <= 1'b0;
@@ -403,83 +413,153 @@ always_ff @(posedge CLOCK_1hz) begin
     
     else begin
         case(state)
+				MODE_PAUSE: begin
+					count <= count;
+					next_direction <= next_direction;
+					up_next <= up_next;
+					down_next <= down_next;
+					right_next <= right_next;
+					left_next <= left_next;
+					o_x_location <= o_x_location;
+					o_y_location <= o_y_location;
+					if (i_mode == MODE_CHASE) begin
+						state <= MODE_CHASE;
+					end
+					else if (i_mode == MODE_SCATTER) begin
+						state <= MODE_SCATTER;
+					end
+					else if (i_mode == MODE_FRIGHTENED) begin
+						state <= MODE_FRIGHTENED;
+					end
+					else if (i_mode == MODE_DIED) begin
+						state <= MODE_DIED;
+					end
+					else if (i_mode == MODE_IDLE) begin
+						state <= MODE_IDLE;
+					end
+					else begin
+						state <= MODE_PAUSE;
+					end
+				end
+				
 				MODE_IDLE: begin
-				    o_x_location <= 9'd132; // ghost initial location.
-					 o_y_location <= 9'd116;
-					  
-					 state <= MODE_IDLE;
-					  
-					 left_next <= 1'b1;
-					 right_next <= 1'b0;
-					 up_next <= 1'b0;
-					 down_next <= 1'b0;
-					  
-					 next_direction <= LEFT; // ghost initial move direction.
-					  
-					 reach <= 1'b0; // no reach.
-					 count <= 4'd0;
-					 case_num <= 4'd0;
-					  
-					 target1 <= 1'b0;
-					 
-					 died_arrive_home <= 1'b0;
-					 
-					 if (i_mode == MODE_CHASE) begin
-					     state <= MODE_CHASE;
-						  left_next <= 1'b1;
-						  right_next <= 1'b0;
-						  up_next <= 1'b0;
-						  down_next <= 1'b0;
-						  count <= 4'd0;
-						  next_direction <= LEFT; // ghost initial move direction.
-					 end
-					 else if (i_mode == MODE_SCATTER) begin
-						  state <= MODE_SCATTER;
-					     count <= 4'd8;
-						  
-					 end
-					 else if (i_mode == MODE_FRIGHTENED) begin
-						  state <= MODE_FRIGHTENED;
-						 count <= 4'd0; // ?
-						 if (next_direction == LEFT) begin
-							  next_direction <= RIGHT;
-							  up_next <= 1'b0;
-							  down_next <= 1'b0;
-							  right_next <= 1'b1;
-							  left_next <= 1'b0;
-						 end
-						 else if (next_direction == RIGHT) begin
-							  next_direction <= LEFT;
-							  up_next <= 1'b0;
-							  down_next <= 1'b0;
-							  right_next <= 1'b0;
+				    if (count == 4'd8) begin
+						 state <= MODE_IDLE;
+						 reach <= 1'b0; // no reach.
+						 case_num <= 4'd0;
+						 target1 <= 1'b0;
+						 died_arrive_home <= 1'b0;
+						 //o_x_location <= 9'd132; // ghost initial location.(pinky)
+						 //o_y_location <= (9'd100 + 9'd4); // right 4 pixel to center.
+						 if (i_mode == MODE_CHASE && o_x_location == 9'd132 && o_y_location == 9'd120) begin
+							  state <= MODE_CHASE;
 							  left_next <= 1'b1;
-						 end
-						 else if (next_direction == UP) begin
-							  next_direction <= DOWN;
-							  up_next <= 1'b0;
-							  down_next <= 1'b1;
 							  right_next <= 1'b0;
-							  left_next <= 1'b0;
+							  up_next <= 1'b0;
+							  down_next <= 1'b0;
+							  count <= 4'd8;
+							  next_direction <= LEFT; // ghost initial move direction.
 						 end
-						 else begin // down.
-							  next_direction <= UP;
+						 else if (o_x_location == 9'd132 && o_y_location == 9'd120 && i_mode == MODE_IDLE && next_direction == UP) begin
+							  count <= 0;
 							  up_next <= 1'b1;
 							  down_next <= 1'b0;
-							  right_next <= 1'b0;
 							  left_next <= 1'b0;
+							  right_next <= 1'b0;
+							  next_direction <= UP;
 						 end
+						 else if (o_x_location == 9'd124 && o_y_location == 9'd120 && (i_mode == MODE_IDLE || i_mode == MODE_CHASE) && next_direction == UP) begin
+							  count <= 0;
+							  up_next <= 1'b0;
+							  down_next <= 1'b1;
+							  left_next <= 1'b0;
+							  right_next <= 1'b0;
+							  next_direction <= DOWN;
+						 end
+						 else if (o_x_location == 9'd132 && o_y_location == 9'd120 && (i_mode == MODE_IDLE || i_mode == MODE_CHASE) && next_direction == DOWN) begin
+							  count <= 0;
+							  up_next <= 1'b0;
+							  down_next <= 1'b1;
+							  left_next <= 1'b0;
+							  right_next <= 1'b0;
+							  next_direction <= DOWN;
+						 end
+						 else if (o_x_location == 9'd140 && o_y_location == 9'd120 && (i_mode == MODE_IDLE || i_mode == MODE_CHASE) && next_direction == DOWN) begin
+							  count <= 0;
+							  up_next <= 1'b1;
+							  down_next <= 1'b0;
+							  left_next <= 1'b0;
+							  right_next <= 1'b0;
+							  next_direction <= UP;
+						 end
+							
+						 else if (i_mode == MODE_PAUSE) begin
+							  state <= MODE_PAUSE;
+							  count <= count;
+							  left_next <= left_next;
+							  right_next <= right_next;
+							  up_next <= up_next;
+							  down_next <= down_next;
+							  next_direction <= next_direction;
+						 end
+						 else if (i_mode == MODE_SCATTER) begin
+							  state <= MODE_SCATTER;
+							  left_next <= 1'b0;
+							  right_next <= 1'b0;
+							  up_next <= 1'b1;
+							  down_next <= 1'b0;
+							  count <= 4'd8;
+							  next_direction <= UP; // ghost initial move direction.
+							  
+						 end
+						 else if (i_mode == MODE_FRIGHTENED) begin
+							 state <= MODE_FRIGHTENED;
+							 count <= 4'd0; // ?
+							 if (next_direction == LEFT) begin
+								  next_direction <= RIGHT;
+								  up_next <= 1'b0;
+								  down_next <= 1'b0;
+								  right_next <= 1'b1;
+								  left_next <= 1'b0;
+							 end
+							 else if (next_direction == RIGHT) begin
+								  next_direction <= LEFT;
+								  up_next <= 1'b0;
+								  down_next <= 1'b0;
+								  right_next <= 1'b0;
+								  left_next <= 1'b1;
+							 end
+							 else if (next_direction == UP) begin
+								  next_direction <= DOWN;
+								  up_next <= 1'b0;
+								  down_next <= 1'b1;
+								  right_next <= 1'b0;
+								  left_next <= 1'b0;
+							 end
+							 else begin // down.
+								  next_direction <= UP;
+								  up_next <= 1'b1;
+								  down_next <= 1'b0;
+								  right_next <= 1'b0;
+								  left_next <= 1'b0;
+							 end
+						end
+					end
+					else begin
+						o_x_location <= o_x_location + down_next - up_next;
+						o_y_location <= o_y_location + right_next - left_next;
+						count <= count + 1'b1;
 					end
 					
 				end
-				
 				MODE_DIED: begin 
 					 
 						 if (count == 4'd8) begin // count = 8, predict next move's next direction.
 							  state <= MODE_DIED;
-							  if (i_mode == MODE_CHASE) begin
+							  if (i_mode == MODE_CHASE && died_arrive_home == 1'b1) begin
 					            state <= MODE_CHASE;
 									count <= 4'd8;
+									died_arrive_home <= 1'b0;
 									
 					        end
 					 
@@ -489,14 +569,44 @@ always_ff @(posedge CLOCK_1hz) begin
 							
 							  end
 							  
-							  else if (o_x_location == 9'd132 && o_y_location == 9'd100) begin // arrive at home.
+							  else if (i_mode == MODE_PAUSE) begin
+									state <= MODE_PAUSE;
+									count <= count;
+									left_next <= left_next;
+									right_next <= right_next;
+									up_next <= up_next;
+									down_next <= down_next;
+									next_direction <= next_direction;
+							  end
+							  
+							  else if (o_x_location == 9'd132 && o_y_location == 9'd104) begin // arrive at home.
 								  died_arrive_home <= 1'b1;
 								  o_x_location <= 9'd132;
-								  o_y_location <= 9'd100;
+								  o_y_location <= 9'd104;
 								  count <= 4'd8;
 							  end
 							 
-							  else if (o_x_location == 9'd108 && o_y_location == 9'd100) begin 
+							  else if (o_x_location == 9'd108 && o_y_location == 9'd100 && next_direction == RIGHT) begin 
+								  count <= 4'd4;
+								  next_direction <= RIGHT;
+								  left_next <= 1'b0;
+								  right_next <= 1'b1;
+								  up_next <= 1'b0;
+								  down_next <= 1'b0;
+								 
+							  end
+							  
+							  else if (o_x_location == 9'd108 && o_y_location == 9'd108 && next_direction == LEFT) begin 
+								  count <= 4'd4;
+								  next_direction <= LEFT;
+								  left_next <= 1'b1;
+								  right_next <= 1'b0;
+								  up_next <= 1'b0;
+								  down_next <= 1'b0;
+								 
+							  end
+							  
+							  else if (o_x_location == 9'd108 && o_y_location == 9'd104) begin 
 								  count <= 4'd0;
 								  next_direction <= DOWN;
 								  left_next <= 1'b0;
@@ -506,7 +616,7 @@ always_ff @(posedge CLOCK_1hz) begin
 								 
 							  end
 							 
-							  else if (o_x_location == 9'd116 && o_y_location == 9'd100) begin 
+							  else if (o_x_location == 9'd116 && o_y_location == 9'd104) begin 
 								  count <= 4'd0;
 								  next_direction <= DOWN;
 								  left_next <= 1'b0;
@@ -516,7 +626,7 @@ always_ff @(posedge CLOCK_1hz) begin
 								 
 							  end
 							 
-							  else if (o_x_location == 9'd124 && o_y_location == 9'd100) begin 
+							  else if (o_x_location == 9'd124 && o_y_location == 9'd104) begin 
 								  count <= 4'd0;
 								  next_direction <= DOWN;
 								  left_next <= 1'b0;
@@ -1178,6 +1288,16 @@ always_ff @(posedge CLOCK_1hz) begin
 									state <= MODE_IDLE;
 								end
 								
+								else if (i_mode == MODE_PAUSE) begin
+									state <= MODE_PAUSE;
+									count <= count;
+									left_next <= left_next;
+									right_next <= right_next;
+									up_next <= up_next;
+									down_next <= down_next;
+									next_direction <= next_direction;
+							  end
+								
                         else if (i_mode == MODE_FRIGHTENED) begin
                             state <= MODE_FRIGHTENED;
 									 count <= 4'd0; // ?
@@ -1231,7 +1351,7 @@ always_ff @(posedge CLOCK_1hz) begin
 									left_next <= 1'b1;
 								end
 								
-								else if (o_x_location == 9'd124 && o_y_location == 9'd100) begin
+								else if (o_x_location == 9'd124 && o_y_location == 9'd104) begin
 									  next_direction <= UP;
 									  
 									  left_next <= 1'b0;
@@ -1243,7 +1363,7 @@ always_ff @(posedge CLOCK_1hz) begin
 									  
 							   end
 								 
-								else if (o_x_location == 9'd116 && o_y_location == 9'd100) begin
+								else if (o_x_location == 9'd116 && o_y_location == 9'd104) begin
 									  next_direction <= UP;
 									  
 									  left_next <= 1'b0;
@@ -1255,16 +1375,16 @@ always_ff @(posedge CLOCK_1hz) begin
 									  
 								end 
 								
-								else if (o_x_location == 9'd132 && o_y_location == 9'd100) begin
+								else if (o_x_location == 9'd132 && o_y_location == 9'd116 + 4'd4) begin
 									  legal_test <= 1'b1;
-									  next_direction <= UP;
+									  next_direction <= LEFT;
 									  
-									  left_next <= 1'b0;
+									  left_next <= 1'b1;
 									  right_next <= 1'b0;
-									  up_next <= 1'b1;
+									  up_next <= 1'b0;
 									  down_next <= 1'b0;
 									
-									  count <= 4'd0;
+									  count <= 4'd4;
 									  
 								end
 								
@@ -1290,11 +1410,24 @@ always_ff @(posedge CLOCK_1hz) begin
 									  up_next <= 1'b0;
 									  down_next <= 1'b0;
 									
+									  count <= 4'd4;
+									  
+								end
+								
+								else if (o_x_location == 9'd132 && o_y_location == 9'd104) begin
+									  legal_test <= 1'b1;
+									  next_direction <= UP;
+									  
+									  left_next <= 1'b0;
+									  right_next <= 1'b0;
+									  up_next <= 1'b1;
+									  down_next <= 1'b0;
+									
 									  count <= 4'd0;
 									  
 								end
 								
-								else if (o_x_location == 9'd108 && o_y_location == 9'd100 && legal_test == 1'b1) begin
+								else if (o_x_location == 9'd108 && o_y_location == 9'd104 && legal_test == 1'b1) begin
 									  legal_test <= 1'b0;
 									  
 									  if (left_distance <= right_distance) begin
@@ -1305,7 +1438,7 @@ always_ff @(posedge CLOCK_1hz) begin
 										  up_next <= 1'b0;
 										  down_next <= 1'b0;
 										
-										  count <= 4'd0;
+										  count <= 4'd4;
 									  end
 									  
 									  else begin
@@ -1316,7 +1449,7 @@ always_ff @(posedge CLOCK_1hz) begin
 										  up_next <= 1'b0;
 										  down_next <= 1'b0;
 										
-										  count <= 4'd0;
+										  count <= 4'd4;
 									  end
 									  
 								end
@@ -1967,6 +2100,16 @@ always_ff @(posedge CLOCK_1hz) begin
 							    state <= MODE_IDLE;
 							end
 							
+							else if (i_mode == MODE_PAUSE) begin
+								 state <= MODE_PAUSE;
+								 count <= count;
+								 left_next <= left_next;
+								 right_next <= right_next;
+								 up_next <= up_next;
+								 down_next <= down_next;
+								 next_direction <= next_direction;
+						   end
+							
 							else if (i_mode == MODE_FRIGHTENED) begin
 								state <= MODE_FRIGHTENED;
 								count <= 4'd0; //?
@@ -2000,6 +2143,26 @@ always_ff @(posedge CLOCK_1hz) begin
 									 left_next <= 1'b0;
 								end
 								
+							end
+							
+							else if (right_to_left == 1'b1) begin
+								    o_x_location <= 10'd132; 
+									 o_y_location <= 10'd4;
+									 next_direction <= RIGHT;
+									 up_next <= 1'b0;
+									 down_next <= 1'b0;
+									 right_next <= 1'b1;
+									 left_next <= 1'b0;
+							end
+								
+							else if (left_to_right == 1'b1) begin
+									o_x_location <= 10'd132; 
+									o_y_location <= 10'd212;
+									next_direction <= LEFT;
+									up_next <= 1'b0;
+									down_next <= 1'b0;
+									right_next <= 1'b0;
+									left_next <= 1'b1;
 							end
 							
 							else if (o_x_location == 9'd252 && o_y_location == 9'd4) begin
@@ -2155,7 +2318,7 @@ always_ff @(posedge CLOCK_1hz) begin
 								end
 							end
 							
-							else if (o_x_location == 9'd124 && o_y_location == 9'd100) begin
+							else if (o_x_location == 9'd124 && o_y_location == 9'd104) begin
 									  next_direction <= UP;
 									  
 									  left_next <= 1'b0;
@@ -2165,9 +2328,9 @@ always_ff @(posedge CLOCK_1hz) begin
 									
 									  count <= 4'd0;
 									  
-							   end
+							end
 								 
-								else if (o_x_location == 9'd116 && o_y_location == 9'd100) begin
+							else if (o_x_location == 9'd116 && o_y_location == 9'd104) begin
 									  next_direction <= UP;
 									  
 									  left_next <= 1'b0;
@@ -2177,22 +2340,22 @@ always_ff @(posedge CLOCK_1hz) begin
 									
 									  count <= 4'd0;
 									  
-								end 
+						   end 
 								
-								else if (o_x_location == 9'd132 && o_y_location == 9'd100) begin
+							else if (o_x_location == 9'd132 && o_y_location == 9'd116 + 4'd4) begin
 									  legal_test <= 1'b1;
-									  next_direction <= UP;
+									  next_direction <= LEFT;
 									  
-									  left_next <= 1'b0;
+									  left_next <= 1'b1;
 									  right_next <= 1'b0;
-									  up_next <= 1'b1;
+									  up_next <= 1'b0;
 									  down_next <= 1'b0;
 									
-									  count <= 4'd0;
+									  count <= 4'd4;
 									  
-								end
+							end
 								
-								else if (o_x_location == 9'd132 && o_y_location == 9'd116) begin
+							else if (o_x_location == 9'd132 && o_y_location == 9'd116) begin
 									  legal_test <= 1'b1;
 									  next_direction <= LEFT;
 									  
@@ -2203,9 +2366,9 @@ always_ff @(posedge CLOCK_1hz) begin
 									
 									  count <= 4'd0;
 									  
-								end
+							end
 								
-								else if (o_x_location == 9'd132 && o_y_location == 9'd108) begin
+							else if (o_x_location == 9'd132 && o_y_location == 9'd108) begin
 									  legal_test <= 1'b1;
 									  next_direction <= LEFT;
 									  
@@ -2214,36 +2377,49 @@ always_ff @(posedge CLOCK_1hz) begin
 									  up_next <= 1'b0;
 									  down_next <= 1'b0;
 									
+									  count <= 4'd4;
+									  
+							end
+								
+							else if (o_x_location == 9'd132 && o_y_location == 9'd104) begin
+									  legal_test <= 1'b1;
+									  next_direction <= UP;
+									  
+									  left_next <= 1'b0;
+									  right_next <= 1'b0;
+									  up_next <= 1'b1;
+									  down_next <= 1'b0;
+									
 									  count <= 4'd0;
 									  
-								end
+							end
 								
-								else if (o_x_location == 9'd108 && o_y_location == 9'd100 && legal_test == 1'b1) begin
+							else if (o_x_location == 9'd108 && o_y_location == 9'd104 && legal_test == 1'b1) begin
 									  legal_test <= 1'b0;
 									  
-									  if (left_distance <= right_distance) begin
-										  next_direction <= LEFT;
-										  
-										  left_next <= 1'b1;
-										  right_next <= 1'b0;
-										  up_next <= 1'b0;
-										  down_next <= 1'b0;
-										
-										  count <= 4'd0;
-									  end
+								  if (left_distance <= right_distance) begin
+									  next_direction <= LEFT;
 									  
-									  else begin
-									     next_direction <= RIGHT;
-										  
-										  left_next <= 1'b0;
-										  right_next <= 1'b1;
-										  up_next <= 1'b0;
-										  down_next <= 1'b0;
-										
-										  count <= 4'd0;
-									  end
+									  left_next <= 1'b1;
+									  right_next <= 1'b0;
+									  up_next <= 1'b0;
+									  down_next <= 1'b0;
+									
+									  count <= 4'd4;
+								  end
+								  
+								  else begin
+									  next_direction <= RIGHT;
 									  
-								end
+									  left_next <= 1'b0;
+									  right_next <= 1'b1;
+									  up_next <= 1'b0;
+									  down_next <= 1'b0;
+									
+									  count <= 4'd4;
+								  end
+									  
+							end
 							
 							else begin// scatter mode.
 								state <= MODE_SCATTER;
@@ -2875,9 +3051,40 @@ always_ff @(posedge CLOCK_1hz) begin
             
             MODE_FRIGHTENED: begin
 					if (o_x_location == pac_x && o_y_location == pac_y) begin // catch the target.
+						  o_x_location <= o_x_location;
+						  o_y_location <= o_y_location;
                     reach <= 1'b1;
-                    count <= 4'd0;
-                    // todo
+                    count <= count;
+						  state <= MODE_DIED;
+						  if (next_direction == LEFT) begin
+								  next_direction <= RIGHT;
+								  up_next <= 1'b0;
+								  down_next <= 1'b0;
+								  right_next <= 1'b1;
+								  left_next <= 1'b0;
+							 end
+							 else if (next_direction == RIGHT) begin
+								  next_direction <= LEFT;
+								  up_next <= 1'b0;
+								  down_next <= 1'b0;
+								  right_next <= 1'b0;
+								  left_next <= 1'b1;
+							 end
+							 else if (next_direction == UP) begin
+								  next_direction <= DOWN;
+								  up_next <= 1'b0;
+								  down_next <= 1'b1;
+								  right_next <= 1'b0;
+								  left_next <= 1'b0;
+							 end
+							 else begin // down.
+								  next_direction <= UP;
+								  up_next <= 1'b1;
+								  down_next <= 1'b0;
+								  right_next <= 1'b0;
+								  left_next <= 1'b0;
+							 end
+                    
                     
                end
 					else if (count == 4'd8) begin
@@ -2888,6 +3095,16 @@ always_ff @(posedge CLOCK_1hz) begin
 						
 						else if (i_mode == MODE_IDLE) begin
 							    state <= MODE_IDLE;
+						end
+						
+						else if (i_mode == MODE_PAUSE) begin
+								state <= MODE_PAUSE;
+								count <= count;
+								left_next <= left_next;
+								right_next <= right_next;
+								up_next <= up_next;
+								down_next <= down_next;
+								next_direction <= next_direction;
 						end
 						
 						else if (i_mode == MODE_DIED) begin
