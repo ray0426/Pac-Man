@@ -70,7 +70,7 @@ always_ff @(posedge i_clk or negedge i_rst_n) begin
                 end
             end
             GS_RELOAD    : begin
-                r_reloads <= {r_reloads[1] | i_board_reload_done, r_reloads[0] | i_items_reload_done};
+                r_reloads <= {r_reloads[1] | 1, r_reloads[0] | i_items_reload_done};
                 if (r_reloads == 2'b11) begin
                     r_board_reload <= 0;
                     r_items_reload <= 0;

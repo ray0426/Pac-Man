@@ -291,7 +291,9 @@ wire       w_pacman_reload;       // to be connected
 wire [7:0] w_level;               // to be connected
 
 assign LEDG[3:0] = w_game_state;
-assign LEDR[3:0] = w_blinky_state;
+assign LEDR[3:0] = SW[2] ? 
+	(SW[1] ? w_inky_state : w_clyde_state) :
+	(SW[1] ? w_pinky_state : w_blinky_state);
 assign LEDR[17:12] = SW[14] ? 
 	(SW[15] ? w_blinky_y_tile : w_blinky_x_tile) : 
 	(SW[15] ? w_pacman_y_tile : w_pacman_x_tile);
@@ -301,7 +303,7 @@ assign w_dot_clear = (w_dots_counter == 0);
 Game_controller game_controller(
 	.i_clk(CLOCK_50),
 	.i_rst_n(~rst_main),
-	.i_game_start(~KEY[0]),
+	.i_game_start(w_right),
 	.i_game_pause(SW[16]),
 	.i_board_reload_done(w_board_reload_done),
 	.i_items_reload_done(w_items_reload_done),   // tbc
@@ -348,10 +350,10 @@ Items_controller items_controller(
 PacmanMove pacmanMove(
     .i_clk(CLOCK_50),
     .i_rst_n(~rst_main),
-    .i_up(w_up & SW[0]),
-    .i_down(w_down & SW[0]),
-    .i_left(w_left & SW[0]),
-    .i_right(w_right & SW[0]),
+    .i_up((w_up & SW[0]) || (key_command == 2'b00)),
+    .i_down((w_down & SW[0]) || (key_command == 2'b01)),
+    .i_left((w_left & SW[0]) || (key_command == 2'b10)),
+    .i_right((w_right & SW[0]) || (key_command == 2'b11)),
     .i_map(w_map),
     .i_pacman_reload(w_pacman_reload),
 
@@ -397,6 +399,7 @@ Ghost_controller ghost_controller(
 );
 
 GhostAlgo_Blinky Blinky_move (
+	.test_bean({SW[10], SW[9], SW[8]}),
     .i_clk(CLOCK_50), // 請接CLOCK_50
     .i_rst(rst_main),   // 功能跟i_pacman_reload一樣，要接的話隨便找一個SW
     .i_pacman_reload(w_ghost_reload), // 之前說到的reload
@@ -419,6 +422,82 @@ GhostAlgo_Blinky Blinky_move (
     .mode_state(mode_state_1)
 );
 
+GhostAlgo_Pinky Pinky_move (
+	 .test_bean({SW[10], SW[9], SW[8]}),
+    .i_clk(CLOCK_50), // 請接CLOCK_50
+    .i_rst(rst_main),   // 功能跟i_pacman_reload一樣，要接的話隨便找一個SW
+    .i_pacman_reload(w_ghost_reload), // 之前說到的reload
+    .pac_x(w_pacman_x),  // 小精靈的x座標
+    .pac_y(w_pacman_y),  // 小精靈的y座標
+    .i_board(w_map),     // 接遊戲地圖
+    .i_mode(w_pinky_state),     // 接遊戲模式(Chase, Scatter, Frightened, IDLE, DIED)
+	 .pac_direction(pac_direction),
+    //.random_move_2(random_move_2),
+    //.random_move_3(random_move_3),
+    .o_x_location(w_pinky_x),  // 鬼魂的輸出位置(x座標)
+    .o_y_location(w_pinky_y),  // 鬼魂的輸出位置(y座標)
+    //.reach(reach_blinky),     // 在chase或frightened模式，小精靈的位置是否等於鬼魂
+    .died_arrive_home(w_pinky_returned), // 在DIED模式中，鬼魂是否返回到重生點了，抵達時=1'b1
+    .next_direction(w_pinky_direction), // 鬼魂目前行走的方向
+
+    // debug用的
+    .test_distance(test_distance2),
+    .illegal(illegal2),
+    .case_num(case_num_pinky),
+    .mode_state(mode_state_2)
+);
+
+
+GhostAlgo_Inky inky_move (
+    .test_bean({SW[10], SW[9], SW[8]}),
+    .i_clk(CLOCK_50), // 請接CLOCK_50
+    .i_rst(rst_main),   // 功能跟i_pacman_reload一樣，要接的話隨便找一個SW
+    .i_pacman_reload(w_ghost_reload), // 之前說到的reload
+    .pac_x(w_pacman_x),  // 小精靈的x座標
+    .pac_y(w_pacman_y),  // 小精靈的y座標
+    .i_board(w_map),     // 接遊戲地圖
+    .i_mode(w_inky_state),     // 接遊戲模式(Chase, Scatter, Frightened, IDLE, DIED)
+	 .pac_direction(pac_direction),
+	 .blinky_x(w_blinky_x),
+	 .blinky_y(w_blinky_y),
+    //.random_move_2(random_move_2),
+    //.random_move_3(random_move_3),
+    .o_x_location(w_inky_x),  // 鬼魂的輸出位置(x座標)
+    .o_y_location(w_inky_y),  // 鬼魂的輸出位置(y座標)
+    //.reach(reach_blinky),     // 在chase或frightened模式，小精靈的位置是否等於鬼魂
+    .died_arrive_home(w_inky_returned), // 在DIED模式中，鬼魂是否返回到重生點了，抵達時=1'b1
+    .next_direction(w_inky_direction), // 鬼魂目前行走的方向
+
+    // debug用的
+    .test_distance(test_distance4),
+    .illegal(illegal4),
+    .case_num(case_num_inky),
+    .mode_state(mode_state_4)
+);
+
+GhostAlgo_Clyde clyde_move (
+    .test_bean({SW[10], SW[9], SW[8]}),
+    .i_clk(CLOCK_50), // 請接CLOCK_50
+    .i_rst(rst_main),   // 功能跟i_pacman_reload一樣，要接的話隨便找一個SW
+    .i_pacman_reload(w_ghost_reload), // 之前說到的reload
+    .pac_x(w_pacman_x),  // 小精靈的x座標
+    .pac_y(w_pacman_y),  // 小精靈的y座標
+    .i_board(w_map),     // 接遊戲地圖
+    .i_mode(w_clyde_state),     // 接遊戲模式(Chase, Scatter, Frightened, IDLE, DIED)
+    //.random_move_2(random_move_2),
+    //.random_move_3(random_move_3),
+    .o_x_location(w_clyde_x),  // 鬼魂的輸出位置(x座標)
+    .o_y_location(w_clyde_y),  // 鬼魂的輸出位置(y座標)
+    //.reach(reach_blinky),     // 在chase或frightened模式，小精靈的位置是否等於鬼魂
+    .died_arrive_home(w_clyde_returned), // 在DIED模式中，鬼魂是否返回到重生點了，抵達時=1'b1
+    .next_direction(w_clyde_direction), // 鬼魂目前行走的方向
+
+    // debug用的
+    .test_distance(test_distance3),
+    .illegal(illegal3),
+    .case_num(case_num_clyde),
+    .mode_state(mode_state_3)
+);
 Collision_controller collision_controller(
     .i_clk(CLOCK_50),
     .i_rst_n(~rst_main),
@@ -450,12 +529,16 @@ Collision_controller collision_controller(
     .o_clyde_eaten(w_clyde_eaten)
 );
 
-Board_controller board_controller(
-	.i_clk(CLOCK_50),
-	.i_rst_n(~rst_main),
+// Board_controller board_controller(
+// 	.i_clk(CLOCK_50),
+// 	.i_rst_n(~rst_main),
 
-	.i_reload(w_board_reload),
-	.o_reload_done(w_board_reload_done),
+// 	.i_reload(w_board_reload),
+// 	.o_reload_done(w_board_reload_done),
+// 	.o_board(w_map)
+// );
+
+Board_controller board_controller(
 	.o_board(w_map)
 );
 
@@ -483,43 +566,58 @@ wire w_left, w_right, w_up, w_down;
 //     .w_pacman_y(w_blinky_y)
 // );
 
-Test_show_pacman test_show_pinky(
-    .i_clk(CLOCK_50),
-    .i_rst_n(~rst_main),
-    .i_up(   w_up    & ~SW[0] & (~SW[2] &  SW[1])),
-    .i_down( w_down  & ~SW[0] & (~SW[2] &  SW[1])),
-    .i_left( w_left  & ~SW[0] & (~SW[2] &  SW[1])),
-    .i_right(w_right & ~SW[0] & (~SW[2] &  SW[1])),
-    .w_pacman_x(w_pinky_x),
-    .w_pacman_y(w_pinky_y)
-);
+// Test_show_pacman test_show_pinky(
+//     .i_clk(CLOCK_50),
+//     .i_rst_n(~rst_main),
+//     .i_up(   w_up    & ~SW[0] & (~SW[2] &  SW[1])),
+//     .i_down( w_down  & ~SW[0] & (~SW[2] &  SW[1])),
+//     .i_left( w_left  & ~SW[0] & (~SW[2] &  SW[1])),
+//     .i_right(w_right & ~SW[0] & (~SW[2] &  SW[1])),
+//     .w_pacman_x(w_pinky_x),
+//     .w_pacman_y(w_pinky_y)
+// );
 
-Test_show_pacman test_show_inky(
-    .i_clk(CLOCK_50),
-    .i_rst_n(~rst_main),
-    .i_up(   w_up    & ~SW[0] & ( SW[2] & ~SW[1])),
-    .i_down( w_down  & ~SW[0] & ( SW[2] & ~SW[1])),
-    .i_left( w_left  & ~SW[0] & ( SW[2] & ~SW[1])),
-    .i_right(w_right & ~SW[0] & ( SW[2] & ~SW[1])),
-    .w_pacman_x(w_inky_x),
-    .w_pacman_y(w_inky_y)
-);
+// Test_show_pacman test_show_inky(
+//     .i_clk(CLOCK_50),
+//     .i_rst_n(~rst_main),
+//     .i_up(   w_up    & ~SW[0] & ( SW[2] & ~SW[1])),
+//     .i_down( w_down  & ~SW[0] & ( SW[2] & ~SW[1])),
+//     .i_left( w_left  & ~SW[0] & ( SW[2] & ~SW[1])),
+//     .i_right(w_right & ~SW[0] & ( SW[2] & ~SW[1])),
+//     .w_pacman_x(w_inky_x),
+//     .w_pacman_y(w_inky_y)
+// );
 
-Test_show_pacman test_show_clyde(
-    .i_clk(CLOCK_50),
-    .i_rst_n(~rst_main),
-    .i_up(   w_up    & ~SW[0] & ( SW[2] &  SW[1])),
-    .i_down( w_down  & ~SW[0] & ( SW[2] &  SW[1])),
-    .i_left( w_left  & ~SW[0] & ( SW[2] &  SW[1])),
-    .i_right(w_right & ~SW[0] & ( SW[2] &  SW[1])),
-    .w_pacman_x(w_clyde_x),
-    .w_pacman_y(w_clyde_y)
-);
+// Test_show_pacman test_show_clyde(
+//     .i_clk(CLOCK_50),
+//     .i_rst_n(~rst_main),
+//     .i_up(   w_up    & ~SW[0] & ( SW[2] &  SW[1])),
+//     .i_down( w_down  & ~SW[0] & ( SW[2] &  SW[1])),
+//     .i_left( w_left  & ~SW[0] & ( SW[2] &  SW[1])),
+//     .i_right(w_right & ~SW[0] & ( SW[2] &  SW[1])),
+//     .w_pacman_x(w_clyde_x),
+//     .w_pacman_y(w_clyde_y)
+// );
 
 Debounce key_left(  .i_in(KEY[3]),	.i_clk(CLOCK_50), .o_pos(w_left));
 Debounce key_up(    .i_in(KEY[2]),	.i_clk(CLOCK_50), .o_pos(w_up));
 Debounce key_down(  .i_in(KEY[1]),	.i_clk(CLOCK_50), .o_pos(w_down));
 Debounce key_right( .i_in(KEY[0]),	.i_clk(CLOCK_50), .o_pos(w_right));
+
+
+// Part of keyboard.
+// W: UP(0), S: DOWN(1), A: LEFT(2), D:RIGHT(3).
+logic [3:0] keyboard_output;
+logic [7:0] key_out;
+logic [1:0] key_command;
+keyboard_buffer keyboard_buffer0 (key_out, PS2_DAT, PS2_CLK, CLOCK_50, rst_main);
+
+output_control output_controller (
+	.clk(CLOCK_50),
+	.rst(rst_main),
+	.last_change(key_out),
+	.key_command(key_command)
+);
 
 // for future use or debug
 assign HEX0 = 7'b1111001;

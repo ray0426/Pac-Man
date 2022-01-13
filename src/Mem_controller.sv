@@ -56,7 +56,7 @@ wire [3:0] w_ghost_pose;
 
 Ghost_anime_select ghost_anime_select(  // to be do
     .i_clk(CLOCK_50),
-	.i_rst_n(~rst_main),
+	.i_rst_n(i_rst_n),
 
     .i_which_char(i_which_char),
     .i_blinky_state(i_blinky_state),
@@ -121,22 +121,22 @@ always_comb begin
         case (i_which_char)
             4'd0: begin  // pacman
                 w_address_ghost = 0;
-                w_address_pacman = w_pacman_pose << 8 + i_char_offset;
+                w_address_pacman = (w_pacman_pose << 8) + i_char_offset;
             end
             4'd1: begin  // blinky
-                w_address_ghost = w_ghost_pose << 8 + i_char_offset;
+                w_address_ghost = (w_ghost_pose << 8) + i_char_offset;
                 w_address_pacman = 0;
             end
             4'd2: begin  // pinky
-                w_address_ghost = w_ghost_pose << 8 + i_char_offset;
+                w_address_ghost = (w_ghost_pose << 8) + i_char_offset;
                 w_address_pacman = 0;
             end
             4'd3: begin  // inky
-                w_address_ghost = w_ghost_pose << 8 + i_char_offset;
+                w_address_ghost = (w_ghost_pose << 8) + i_char_offset;
                 w_address_pacman = 0;
             end
             4'd4: begin  // clyde
-                w_address_ghost = w_ghost_pose << 8 + i_char_offset;
+                w_address_ghost = (w_ghost_pose << 8) + i_char_offset;
                 w_address_pacman = 0;
             end
             default: begin
