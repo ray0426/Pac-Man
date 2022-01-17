@@ -1,7 +1,9 @@
 // Ghost Algorithm for chase, scatter, frightened, idle, died mode.
 // Tile version.
-module GhostAlgo_Blinky ( 
+module GhostAlgo_Blinky (
+	input i_level, 
 	 input [2:0] test_bean,
+	 input [7:0] i_dots_eaten_counter,
     input i_clk, // global clock, (CLOCK_50).
     input i_rst, // reset, like i_pacman_reload.
 	 input i_pacman_reload, // reload.
@@ -27,8 +29,10 @@ module GhostAlgo_Blinky (
 
 logic [27:0] speed_number;
 speedController speedcontrol (
+	.i_level(i_level),
 	.test_bean(test_bean),
    .i_mode(i_mode),
+	.i_dots_eaten_counter(i_dots_eaten_counter),
    .o_speed(speed_number)
 );
 logic CLOCK_1hz;
@@ -2856,7 +2860,7 @@ always_ff @(posedge CLOCK_1hz) begin
 						else if (i_mode == MODE_DIED) begin
 							state <= MODE_DIED;
 							
-							count <= 4'd8; // ?
+							count <= 4'd0; // ?
 							 if (next_direction == LEFT) begin
 								  next_direction <= RIGHT;
 								  up_next <= 1'b0;
